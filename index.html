@@ -489,6 +489,7 @@
   var STORAGE_RECORDS = "moneytrend_checklist_records_v1";
   var STORAGE_DRAFT = "moneytrend_checklist_draft_v1";
   var STORAGE_AI_KEY_PREFIX = "moneytrend_ai_key_";
+  var STORAGE_AI_MODEL_PREFIX = "moneytrend_ai_model_";
   var STORAGE_AI_PROVIDER = "moneytrend_ai_provider_v1";
 
   var PROVIDERS = {
@@ -497,10 +498,12 @@
       keyPlaceholder: "AIza...",
       keyHelpLabel: "aistudio.google.com에서 무료 키 발급",
       keyHelpUrl: "https://aistudio.google.com/apikey",
-      freeNote: "Google AI Studio에서 신용카드 없이 무료 API 키를 받을 수 있습니다. 분당·일일 호출 횟수 제한이 있고, 무료 정책은 Google이 언제든 바꿀 수 있습니다.",
-      buildRequest: function (prompt, apiKey) {
+      defaultModel: "gemini-flash-latest",
+      modelHelpUrl: "https://ai.google.dev/gemini-api/docs/models",
+      freeNote: "Google AI Studio에서 신용카드 없이 무료 API 키를 받을 수 있습니다. 분당·일일 호출 횟수 제한이 있고, 무료 정책·모델명은 Google이 언제든 바꿀 수 있습니다. 429(quota) 오류가 나면 아래 모델명을 최신 무료 모델명으로 바꿔서 다시 시도해 보세요.",
+      buildRequest: function (prompt, apiKey, model) {
         return {
-          url: "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=" + encodeURIComponent(apiKey),
+          url: "https://generativelanguage.googleapis.com/v1beta/models/" + encodeURIComponent(model) + ":generateContent?key=" + encodeURIComponent(apiKey),
           headers: { "content-type": "application/json" },
           body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
         };
@@ -516,8 +519,10 @@
       keyPlaceholder: "sk-ant-...",
       keyHelpLabel: "console.anthropic.com에서 키 발급",
       keyHelpUrl: "https://console.anthropic.com",
+      defaultModel: "claude-sonnet-5",
+      modelHelpUrl: "https://docs.claude.com/en/docs/about-claude/models/overview",
       freeNote: "신규 가입 시 소액 체험 크레딧이 제공될 수 있으나 상시 무료는 아닙니다. 소진 후에는 호출마다 과금됩니다.",
-      buildRequest: function (prompt, apiKey) {
+      buildRequest: function (prompt, apiKey, model) {
         return {
           url: "https://api.anthropic.com/v1/messages",
           headers: {
@@ -526,7 +531,7 @@
             "anthropic-version": "2023-06-01",
             "anthropic-dangerous-direct-browser-access": "true"
           },
-          body: JSON.stringify({ model: "claude-sonnet-5", max_tokens: 4000, messages: [{ role: "user", content: prompt }] })
+          body: JSON.stringify({ model: model, max_tokens: 4000, messages: [{ role: "user", content: prompt }] })
         };
       },
       parseResponse: function (data) {
@@ -564,6 +569,9 @@
   function loadAiKey(provider) {
     try { return localStorage.getItem(STORAGE_AI_KEY_PREFIX + provider) || ""; } catch (e) { return ""; }
   }
+  function loadAiModel(provider) {
+    try { return localStorage.getItem(STORAGE_AI_MODEL_PREFIX + provider) || PROVIDERS[provider].defaultModel; } catch (e) { return PROVIDERS[provider].defaultModel; }
+  }
 
   var state = {
     current: loadDraft() || freshCurrent(),
@@ -572,6 +580,7 @@
     ai: {
       provider: loadAiProvider(),
       keys: { gemini: loadAiKey("gemini"), anthropic: loadAiKey("anthropic") },
+      models: { gemini: loadAiModel("gemini"), anthropic: loadAiModel("anthropic") },
       rememberKey: true,
       targetName: "",
       context: "",
@@ -1448,12 +1457,13 @@
     var ai = state.ai;
     var provider = PROVIDERS[ai.provider];
     var apiKey = (ai.keys[ai.provider] || "").trim();
+    var model = (ai.models[ai.provider] || provider.defaultModel).trim();
     if (!apiKey) { toast(provider.label + " API 키를 먼저 입력해 주세요."); return; }
     if (!ai.targetName || !ai.targetName.trim()) { toast("종목 또는 업종명을 입력해 주세요."); return; }
     ai.loading = true; ai.error = ""; renderAll();
 
     var prompt = buildAiPrompt(ai.targetName.trim(), ai.context.trim());
-    var req = provider.buildRequest(prompt, apiKey);
+    var req = provider.buildRequest(prompt, apiKey, model);
 
     fetch(req.url, { method: "POST", headers: req.headers, body: req.body })
       .then(function (res) {
@@ -1484,6 +1494,7 @@
         if (ai.rememberKey) {
           try {
             localStorage.setItem(STORAGE_AI_KEY_PREFIX + ai.provider, apiKey);
+            localStorage.setItem(STORAGE_AI_MODEL_PREFIX + ai.provider, model);
             localStorage.setItem(STORAGE_AI_PROVIDER, ai.provider);
           } catch (e) {}
         }
@@ -1549,15 +1560,41 @@
     });
     providerSel.addEventListener("change", function (e) { ai.provider = e.target.value; renderAll(); });
 
+    function persistAiField(kind, provKey, value) {
+      if (!ai.rememberKey) return;
+      try {
+        localStorage.setItem(kind === "key" ? STORAGE_AI_KEY_PREFIX + provKey : STORAGE_AI_MODEL_PREFIX + provKey, value);
+        localStorage.setItem(STORAGE_AI_PROVIDER, ai.provider);
+      } catch (e) {}
+    }
+
     var keyInput = el("input", { type: "password", placeholder: provider.keyPlaceholder });
     keyInput.value = ai.keys[ai.provider] || "";
-    keyInput.addEventListener("input", function (e) { ai.keys[ai.provider] = e.target.value; });
+    keyInput.addEventListener("input", function (e) {
+      ai.keys[ai.provider] = e.target.value;
+      persistAiField("key", ai.provider, e.target.value);
+    });
+
+    var modelInput = el("input", { type: "text", placeholder: provider.defaultModel });
+    modelInput.value = ai.models[ai.provider] || provider.defaultModel;
+    modelInput.addEventListener("input", function (e) {
+      ai.models[ai.provider] = e.target.value;
+      persistAiField("model", ai.provider, e.target.value);
+    });
 
     var rememberCb = el("input", { type: "checkbox" });
     rememberCb.checked = ai.rememberKey;
     rememberCb.addEventListener("change", function (e) {
       ai.rememberKey = e.target.checked;
-      if (!ai.rememberKey) { try { localStorage.removeItem(STORAGE_AI_KEY_PREFIX + ai.provider); } catch (err) {} }
+      if (!ai.rememberKey) {
+        try {
+          localStorage.removeItem(STORAGE_AI_KEY_PREFIX + ai.provider);
+          localStorage.removeItem(STORAGE_AI_MODEL_PREFIX + ai.provider);
+        } catch (err) {}
+      } else {
+        persistAiField("key", ai.provider, ai.keys[ai.provider] || "");
+        persistAiField("model", ai.provider, ai.models[ai.provider] || provider.defaultModel);
+      }
     });
 
     var nameInput = el("input", { type: "text", placeholder: "예: 삼성전자, 2차전지 업종, 미국 반도체 섹터" });
@@ -1573,7 +1610,9 @@
       el("div", { class: "field", style: "margin-bottom:12px;" }, [el("label", {}, ["AI 제공사"]), providerSel]),
       el("div", { class: "callout", style: "margin-bottom:12px;" }, [provider.freeNote, " ", el("a", { href: provider.keyHelpUrl, target: "_blank", rel: "noopener" }, [provider.keyHelpLabel])]),
       el("div", { class: "field", style: "margin-bottom:12px;" }, [el("label", {}, [provider.label + " API 키"]), keyInput]),
-      el("label", { style: "display:flex;gap:6px;align-items:center;font-size:12.5px;color:var(--ink-dim);margin-bottom:14px;" }, [rememberCb, "이 브라우저에 키 저장 (체크 해제 시 세션 종료와 함께 사라짐)"]),
+      el("div", { class: "field", style: "margin-bottom:6px;" }, [el("label", {}, ["모델명"]), modelInput]),
+      el("div", { style: "color:var(--ink-faint);font-size:11.5px;margin-bottom:14px;" }, ["429(quota) 오류가 나면 이 모델명을 바꿔보세요 — 현재 사용 가능한 모델 목록: ", el("a", { href: provider.modelHelpUrl, target: "_blank", rel: "noopener" }, [provider.modelHelpUrl.replace(/^https?:\/\//, "")])]),
+      el("label", { style: "display:flex;gap:6px;align-items:center;font-size:12.5px;color:var(--ink-dim);margin-bottom:14px;" }, [rememberCb, "이 브라우저에 키·모델명 저장 (체크 해제 시 세션 종료와 함께 사라짐)"]),
       el("div", { class: "field", style: "margin-bottom:12px;" }, [el("label", {}, ["종목 / 업종명"]), nameInput]),
       el("div", { class: "field", style: "margin-bottom:14px;" }, [el("label", {}, ["참고 메모 (선택)"]), contextTa]),
       el("button", {
