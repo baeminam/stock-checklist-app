@@ -3,3 +3,4 @@ __pycache__/
 data_test.json
 sample_output.json
 checklist-app.html
+*.lnk
