@@ -1,0 +1,1592 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>매크로·산업·종목 스코어카드</title>
+<meta name="description" content="거시경제·주식 추세 예측 체크리스트 V3.1의 채점 규칙을 그대로 옮긴 개인용 투자 판단 계산기">
+<style>
+  @font-face {
+    font-family: 'ui-serif-fallback';
+    src: local('Iowan Old Style'), local('Palatino Linotype'), local('Palatino');
+  }
+  :root {
+    --bg: #F4F5F7;
+    --surface: #FFFFFF;
+    --surface-2: #ECEEF2;
+    --surface-3: #E2E5EA;
+    --border: #D9DCE3;
+    --ink: #1B2027;
+    --ink-dim: #656C78;
+    --ink-faint: #9198A3;
+    --accent: #A9772F;
+    --accent-ink: #FFFFFF;
+    --accent-soft: #F1E4CC;
+    --positive: #1E8A5F;
+    --positive-soft: #DFF3EA;
+    --negative: #B14335;
+    --negative-soft: #FBE6E2;
+    --neutral-signal: #8A7A45;
+    --neutral-soft: #F0EAD7;
+    --shadow: 0 1px 2px rgba(20,24,32,0.06), 0 8px 24px -12px rgba(20,24,32,0.18);
+    --radius: 10px;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0A0D12;
+      --surface: #12161D;
+      --surface-2: #1A202B;
+      --surface-3: #232A37;
+      --border: #2B3341;
+      --ink: #E7E9ED;
+      --ink-dim: #98A1AF;
+      --ink-faint: #6B7383;
+      --accent: #D9A94F;
+      --accent-ink: #16110A;
+      --accent-soft: #3A2E15;
+      --positive: #3FBF8B;
+      --positive-soft: #123024;
+      --negative: #E0665A;
+      --negative-soft: #331815;
+      --neutral-signal: #C9B77E;
+      --neutral-soft: #2C2818;
+      --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 12px 32px -12px rgba(0,0,0,0.6);
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0A0D12; --surface: #12161D; --surface-2: #1A202B; --surface-3: #232A37;
+    --border: #2B3341; --ink: #E7E9ED; --ink-dim: #98A1AF; --ink-faint: #6B7383;
+    --accent: #D9A94F; --accent-ink: #16110A; --accent-soft: #3A2E15;
+    --positive: #3FBF8B; --positive-soft: #123024; --negative: #E0665A; --negative-soft: #331815;
+    --neutral-signal: #C9B77E; --neutral-soft: #2C2818; color-scheme: dark;
+  }
+  :root[data-theme="light"] {
+    --bg: #F4F5F7; --surface: #FFFFFF; --surface-2: #ECEEF2; --surface-3: #E2E5EA;
+    --border: #D9DCE3; --ink: #1B2027; --ink-dim: #656C78; --ink-faint: #9198A3;
+    --accent: #A9772F; --accent-ink: #FFFFFF; --accent-soft: #F1E4CC;
+    --positive: #1E8A5F; --positive-soft: #DFF3EA; --negative: #B14335; --negative-soft: #FBE6E2;
+    --neutral-signal: #8A7A45; --neutral-soft: #F0EAD7; color-scheme: light;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Pretendard", "Malgun Gothic", sans-serif;
+    font-size: 14.5px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+  .serif { font-family: Iowan Old Style, "Noto Serif KR", Palatino, Georgia, serif; }
+  .mono { font-family: ui-monospace, SFMono-Regular, "Cascadia Mono", Consolas, monospace; font-variant-numeric: tabular-nums; }
+
+  a { color: var(--accent); }
+  button { font-family: inherit; }
+
+  .app { max-width: 980px; margin: 0 auto; padding: 0 20px 80px; }
+
+  /* header */
+  .masthead {
+    padding: 28px 20px 0;
+    max-width: 980px;
+    margin: 0 auto;
+  }
+  .masthead .eyebrow {
+    font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--accent); font-weight: 600; margin-bottom: 6px;
+  }
+  .masthead h1 {
+    font-size: 26px; margin: 0 0 6px; text-wrap: balance; font-weight: 600;
+  }
+  .masthead p.sub { color: var(--ink-dim); margin: 0 0 18px; max-width: 62ch; font-size: 13.5px; }
+
+  /* sticky summary bar */
+  .summary-bar {
+    position: sticky; top: 0; z-index: 30;
+    background: color-mix(in srgb, var(--bg) 88%, transparent);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--border);
+  }
+  .summary-inner {
+    max-width: 980px; margin: 0 auto; padding: 10px 20px;
+    display: flex; align-items: center; gap: 18px; flex-wrap: wrap;
+  }
+  .summary-score { display: flex; align-items: baseline; gap: 8px; }
+  .summary-score .val { font-size: 22px; font-weight: 700; }
+  .summary-score .lbl { font-size: 11px; color: var(--ink-faint); text-transform: uppercase; letter-spacing: 0.08em; }
+  .pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 10px; border-radius: 999px; font-size: 12.5px; font-weight: 600;
+    border: 1px solid transparent;
+  }
+  .pill.pos { background: var(--positive-soft); color: var(--positive); }
+  .pill.neg { background: var(--negative-soft); color: var(--negative); }
+  .pill.neu { background: var(--neutral-soft); color: var(--neutral-signal); }
+  .pill.veto { background: var(--negative); color: #fff; }
+  .pill-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+  .summary-stages { display: flex; gap: 10px; margin-left: auto; flex-wrap: wrap; }
+  .stage-chip { font-size: 11.5px; color: var(--ink-dim); display: flex; gap: 4px; align-items: baseline; }
+  .stage-chip b { color: var(--ink); font-weight: 700; }
+
+  /* tabs */
+  .tabs {
+    display: flex; gap: 2px; overflow-x: auto; padding: 14px 0 0;
+    border-bottom: 1px solid var(--border); margin-bottom: 22px;
+  }
+  .tab-btn {
+    background: none; border: none; cursor: pointer;
+    padding: 9px 14px; font-size: 13px; color: var(--ink-dim); font-weight: 600;
+    white-space: nowrap; border-bottom: 2px solid transparent; margin-bottom: -1px;
+  }
+  .tab-btn:hover { color: var(--ink); }
+  .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+  .tab-btn .n { font-family: ui-monospace, monospace; color: var(--ink-faint); margin-right: 4px; }
+  .tab-btn.active .n { color: var(--accent); }
+
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  /* cards */
+  .card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+    box-shadow: var(--shadow);
+  }
+  .stage-head {
+    display: flex; align-items: baseline; justify-content: space-between; gap: 12px;
+    margin-bottom: 4px;
+  }
+  .stage-head h2 { font-size: 19px; margin: 0; font-weight: 700; }
+  .stage-head .weight { font-size: 12.5px; color: var(--ink-dim); font-family: ui-monospace, monospace; }
+  .stage-desc { color: var(--ink-dim); font-size: 13px; margin: 0 0 18px; }
+
+  .item-card {
+    padding: 16px 18px; margin-bottom: 12px;
+  }
+  .item-top { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; margin-bottom: 8px; }
+  .item-label { font-weight: 700; font-size: 14.5px; }
+  .item-hint { color: var(--ink-dim); font-size: 12.5px; margin: 3px 0 0; max-width: 62ch; }
+  .guide-toggle {
+    background: none; border: none; color: var(--accent); font-size: 11.5px; font-weight: 600;
+    cursor: pointer; padding: 4px 0 0; display: block;
+  }
+  .guide-toggle:hover { text-decoration: underline; }
+  table.guide-table {
+    margin-top: 6px; border-collapse: collapse; font-size: 12px; width: 100%; max-width: 56ch;
+    background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; overflow: hidden;
+  }
+  table.guide-table td { padding: 6px 10px; border-bottom: 1px solid var(--border); vertical-align: top; color: var(--ink-dim); }
+  table.guide-table tr:last-child td { border-bottom: none; }
+  table.guide-table td.mono { color: var(--ink); font-weight: 700; white-space: nowrap; width: 1%; }
+  .item-score-out { font-family: ui-monospace, monospace; font-size: 13px; color: var(--ink-faint); white-space: nowrap; }
+
+  .seg {
+    display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin: 10px 0 8px;
+  }
+  .seg button {
+    border: 1px solid var(--border); background: var(--surface-2); color: var(--ink-dim);
+    border-radius: 8px; padding: 8px 4px; cursor: pointer; font-size: 13px; font-weight: 700;
+    font-family: ui-monospace, monospace; transition: background .12s, color .12s, border-color .12s;
+  }
+  .seg button:hover { border-color: var(--ink-faint); }
+  .seg button.active.sel2 { background: var(--positive); color: #fff; border-color: var(--positive); }
+  .seg button.active.sel1 { background: var(--positive-soft); color: var(--positive); border-color: var(--positive); }
+  .seg button.active.sel0 { background: var(--surface-3); color: var(--ink); border-color: var(--ink-faint); }
+  .seg button.active.selm1 { background: var(--negative-soft); color: var(--negative); border-color: var(--negative); }
+  .seg button.active.selm2 { background: var(--negative); color: #fff; border-color: var(--negative); }
+
+  textarea.note {
+    width: 100%; resize: vertical; min-height: 46px; border: 1px solid var(--border);
+    background: var(--surface-2); color: var(--ink); border-radius: 8px; padding: 8px 10px;
+    font-size: 13px; font-family: inherit;
+  }
+  textarea.note:focus, input:focus, select:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .note-row { display: flex; gap: 8px; align-items: flex-start; }
+  .insert-btn {
+    flex-shrink: 0; border: 1px dashed var(--accent); background: var(--accent-soft); color: var(--accent);
+    border-radius: 7px; padding: 6px 9px; font-size: 11.5px; cursor: pointer; font-weight: 600; white-space: nowrap;
+  }
+  .insert-btn:hover { filter: brightness(1.05); }
+
+  .callout {
+    border-radius: var(--radius); padding: 12px 16px; font-size: 13px; margin-bottom: 16px;
+    border: 1px solid var(--border); background: var(--surface-2); color: var(--ink-dim);
+  }
+  .callout.warn { background: var(--negative-soft); border-color: color-mix(in srgb, var(--negative) 40%, var(--border)); color: var(--negative); }
+  .callout strong { color: inherit; }
+
+  .veto-card { padding: 16px 18px; margin-top: 20px; }
+  .veto-list { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
+  .veto-row {
+    display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px;
+    background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px;
+  }
+  .veto-row input[type=checkbox] { margin-top: 3px; width: 16px; height: 16px; accent-color: var(--negative); }
+  .veto-row .t { font-weight: 600; font-size: 13.5px; }
+  .veto-row .ref { color: var(--ink-faint); font-size: 11.5px; margin-top: 3px; font-family: ui-monospace, monospace; }
+  .veto-status { margin-top: 14px; font-size: 13px; font-weight: 600; }
+
+  /* buttons */
+  .btn {
+    display: inline-flex; align-items: center; gap: 6px; border-radius: 8px; border: 1px solid var(--border);
+    background: var(--surface-2); color: var(--ink); padding: 9px 14px; font-size: 13px; font-weight: 600;
+    cursor: pointer;
+  }
+  .btn:hover { border-color: var(--ink-faint); }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+  .btn.primary:hover { filter: brightness(1.06); }
+  .btn.danger { color: var(--negative); }
+  .btn.ghost { background: transparent; }
+  .btn.sm { padding: 6px 10px; font-size: 12px; }
+  .btn:disabled { opacity: .5; cursor: not-allowed; }
+
+  .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .field { display: flex; flex-direction: column; gap: 4px; }
+  .field label { font-size: 11.5px; color: var(--ink-dim); text-transform: uppercase; letter-spacing: .05em; }
+  .field input, .field select {
+    border: 1px solid var(--border); background: var(--surface-2); color: var(--ink);
+    border-radius: 7px; padding: 8px 10px; font-size: 13px; font-family: inherit;
+  }
+  .field input, .field textarea { width: 100%; }
+
+  .ai-draft-table td { vertical-align: top; }
+  .ai-draft-table .score-cell { width: 64px; }
+  .ai-draft-table select.score-select {
+    width: 100%; border: 1px solid var(--border); background: var(--surface-2); color: var(--ink);
+    border-radius: 6px; padding: 5px 6px; font-family: ui-monospace, monospace; font-weight: 700; font-size: 13px;
+  }
+  .ai-draft-table textarea.note-mini {
+    width: 100%; min-height: 40px; border: 1px solid var(--border); background: var(--surface-2); color: var(--ink);
+    border-radius: 6px; padding: 6px 8px; font-size: 12.5px; font-family: inherit; resize: vertical;
+  }
+  .spinner {
+    display: inline-block; width: 14px; height: 14px; border: 2px solid var(--ink-faint);
+    border-top-color: var(--accent); border-radius: 50%; animation: spin .7s linear infinite; margin-right: 6px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* summary/results panel */
+  .result-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 16px 0; }
+  @media (max-width: 720px) { .result-grid { grid-template-columns: repeat(2, 1fr); } }
+  .stage-tile { padding: 14px; border-radius: var(--radius); border: 1px solid var(--border); background: var(--surface); }
+  .stage-tile .k { font-size: 11px; color: var(--ink-faint); text-transform: uppercase; letter-spacing: .06em; }
+  .stage-tile .v { font-family: ui-monospace, monospace; font-size: 20px; font-weight: 700; margin-top: 4px; }
+  .stage-tile .w { font-size: 11px; color: var(--ink-faint); margin-top: 2px; }
+
+  .total-card {
+    padding: 22px; border-radius: 14px; margin: 18px 0;
+    background: linear-gradient(160deg, var(--surface), var(--surface-2));
+    border: 1px solid var(--border);
+    display: flex; align-items: center; gap: 22px; flex-wrap: wrap;
+  }
+  .total-card .num { font-family: ui-monospace, monospace; font-size: 44px; font-weight: 700; line-height: 1; }
+  .total-card .band { font-size: 17px; font-weight: 700; margin-bottom: 4px; }
+  .total-card .memo { color: var(--ink-dim); font-size: 13px; max-width: 46ch; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { text-align: left; color: var(--ink-faint); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; padding: 8px 10px; border-bottom: 1px solid var(--border); }
+  td { padding: 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  tr:last-child td { border-bottom: none; }
+  .table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); }
+
+  .matrix-table td.hi { background: var(--accent-soft); }
+
+  .section { margin-bottom: 28px; }
+  .section-title { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--ink-faint); margin: 0 0 10px; font-weight: 700; }
+
+  .ref-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 10px; margin-top: 14px; }
+  .ref-tile { padding: 12px 14px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); }
+  .ref-tile .lbl { font-size: 12px; color: var(--ink-dim); }
+  .ref-tile .val { font-family: ui-monospace, monospace; font-size: 19px; font-weight: 700; margin: 3px 0; }
+  .ref-tile .delta { font-size: 11.5px; font-family: ui-monospace, monospace; }
+  .ref-tile .delta.up { color: var(--positive); }
+  .ref-tile .delta.down { color: var(--negative); }
+  .ref-tile .date { font-size: 10.5px; color: var(--ink-faint); margin-top: 4px; }
+
+  .empty { color: var(--ink-faint); font-size: 13px; padding: 24px; text-align: center; }
+
+  .toast-wrap { position: fixed; bottom: 18px; right: 18px; z-index: 100; display: flex; flex-direction: column; gap: 8px; }
+  .toast {
+    background: var(--ink); color: var(--bg); padding: 10px 16px; border-radius: 8px; font-size: 13px;
+    box-shadow: var(--shadow); max-width: 320px; animation: toast-in .18s ease-out;
+  }
+  @keyframes toast-in { from { opacity:0; transform: translateY(6px);} to {opacity:1; transform:none;} }
+
+  .disclaimer { color: var(--ink-faint); font-size: 11.5px; border-top: 1px solid var(--border); padding-top: 16px; margin-top: 40px; }
+
+  .checklist-box { margin-top: 8px; }
+  .checklist-box label { display: flex; gap: 8px; align-items: flex-start; font-size: 13px; color: var(--ink-dim); padding: 5px 0; }
+  .checklist-box input { margin-top: 3px; accent-color: var(--accent); }
+
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+</style>
+</head>
+<body>
+
+<div class="masthead">
+  <div class="eyebrow">MONEYTREND CHECKLIST V3.1 기반</div>
+  <h1 class="serif">매크로·산업·종목 스코어카드</h1>
+  <p class="sub">거시경제·주식 추세 예측 체크리스트의 채점 규칙을 그대로 계산기로 옮겼습니다. 항목마다 -2~+2로 채점하면 단계 평균 → 가중 총점 → 베토/캡 안전장치 → 실행 구간까지 자동으로 계산됩니다. 이 문서와 앱은 교육용 참고 자료이며 매수·매도 권유가 아닙니다.</p>
+</div>
+
+<div class="summary-bar">
+  <div class="summary-inner" id="summaryBar"></div>
+</div>
+
+<div class="app">
+  <div class="tabs" id="tabs"></div>
+
+  <div class="panel" id="panel-guide"></div>
+  <div class="panel" id="panel-macro"></div>
+  <div class="panel" id="panel-industry"></div>
+  <div class="panel" id="panel-stock"></div>
+  <div class="panel" id="panel-market"></div>
+  <div class="panel" id="panel-result"></div>
+  <div class="panel" id="panel-records"></div>
+  <div class="panel" id="panel-auto"></div>
+  <div class="panel" id="panel-ai"></div>
+
+  <div class="disclaimer">
+    MoneyTrend 교육용 체크리스트를 바탕으로 만든 개인용 계산 도구입니다. 점수는 정밀한 예측 장치가 아니라 판단 일관성을 높이는 도구이며, 최종 투자 판단과 책임은 본인에게 있습니다. 데이터는 이 브라우저에만 저장되며 서버로 전송되지 않습니다.
+  </div>
+</div>
+
+<div class="toast-wrap" id="toastWrap"></div>
+
+<script>
+(function () {
+  "use strict";
+
+  /* ---------------------------------------------------------- */
+  /* 1. 데이터 정의                                                */
+  /* ---------------------------------------------------------- */
+
+  var STAGES = {
+    macro: {
+      key: "macro", label: "01 매크로", weight: 0.40,
+      desc: "시장 전체의 방향과 위험선호도를 결정합니다. 가장 큰 가중치와 캡·베토 권한을 가진 단계입니다.",
+      items: [
+        { id: "base_rate", label: "기준금리·정책 방향", hint: "인하해도 '왜' 인하했는지가 중요합니다. 성장 유지 속 인하는 강세, 침체 대응 인하는 약세 신호입니다.",
+          guide: [["+2", "인하 + 성장 유지 (듀레이션 긴 성장주 우위)"], ["0", "동결, 방향 불확실"], ["-1~-2", "인하 + 침체 대응 (정책 완화보다 실적 하향이 빠름)"]] },
+        { id: "bond_yield", label: "국채금리 구성", hint: "금리 상승이 성장 기대 주도면 우호적, 실질금리·기대인플레 주도면 할인율 부담으로 약세 요인입니다.",
+          guide: [["0~+1", "명목금리 상승 = 성장 기대 주도, 실적 상향이 밸류 압박을 상쇄"], ["0", "혼조, 방향성 불명확"], ["-1~-2", "실질금리·기대인플레 주도 상승 (할인율 부담, 고PER·장기성장주 취약)"]] },
+        { id: "regime", label: "성장·인플레이션 레짐", hint: "골디락스(성장↑물가↓)는 강세, 스태그플레이션·침체는 약세 레짐입니다. 회복 초입도 강세로 봅니다.",
+          guide: [["+2", "골디락스: 성장↑ 물가↓ (폭넓은 랠리·브레드스 확장)"], ["+1~+2", "회복 초입: 성장↓→바닥 + 정책 전환"], ["-1", "과열·재가속: 성장↑ 물가↑ (긴축 우려)"], ["-2", "스태그플레이션(성장↓물가↑) 또는 침체·경착륙(성장↓물가↓)"]] },
+        { id: "liquidity", label: "유동성", hint: "QT 완화·신용공급 개선은 우호적, 유동성 축소·대출태도 강화는 비우호적입니다.",
+          guide: [["+1", "QT 완화 + 신용 공급 개선 (위험자산 상승의 연료)"], ["0", "큰 변화 없음"], ["-1", "유동성 축소 + 대출태도 강화 (밸류에이션 하단 하락)"]] },
+        { id: "credit", label: "신용·위험선호 (하이일드 스프레드)", hint: "급확대는 실적 호조보다 우선하는 경고 신호입니다. 이 항목이 -2면 매크로 단계 점수는 -1을 넘지 못합니다 (자동 반영).",
+          guide: [["0~+1", "스프레드 안정 또는 축소"], ["-1", "IG/HY 괴리 확대 시작 (저품질 신용 취약 신호)"], ["-2", "급확대, 유동성·이익추정 동반 악화 (레버리지·장기듀레이션 즉시 축소 신호)"]] },
+        { id: "volatility", label: "VIX·MOVE (변동성)", hint: "주식·채권 변동성을 함께 봅니다. 둘 다 급등하면 전면적 리스크오프 신호입니다.",
+          guide: [["+1", "VIX 안정적 저위"], ["0", "VIX는 안정인데 MOVE 급등 (금리 리스크만 국지적)"], ["-1~-2", "VIX·MOVE 동시 급등 (전면적 리스크오프)"]] },
+        { id: "kr_export", label: "한국 수출·반도체", hint: "수출 증감률과 메모리 가격, 재고 정상화 동반 여부가 KOSPI 이익수정의 핵심 동인입니다.",
+          guide: [["+1~+2", "수출 개선 + 재고 정상화 동시 확인"], ["0", "혼조 또는 데이터 부족"], ["-1~-2", "수출 둔화 + 재고 누적"]] },
+        { id: "kr_fx", label: "원화", hint: "USD/KRW 수준보다 변동 '속도'가 중요합니다. 급격한 약세는 외국인 이탈로 이어질 수 있습니다.",
+          guide: [["+1", "완만한 약세 (수출주 실적에 우호적)"], ["0", "안정적 박스권"], ["-1~-2", "급격한 약세 (외국인 이탈·평가손 확대, 베토 트리거 후보)"]] },
+        { id: "kr_flow", label: "외국인 수급", hint: "매크로가 중립이어도 외국인 방향이 지수 상단을 결정하는 경우가 많습니다.",
+          guide: [["+1~+2", "선물·현물 누적 순매수 지속"], ["0", "방향 불명확, 단기 매매 위주"], ["-1~-2", "누적 순매도 지속"]] }
+      ]
+    },
+    industry: {
+      key: "industry", label: "02 산업", weight: 0.25,
+      desc: "매크로가 중립 이상일 때 어디를 살지 결정하는 단계입니다.",
+      items: [
+        { id: "demand", label: "수요", hint: "신규 수주·출하·최종수요 개선이 2개 이상의 독립 지표에서 확인되는지 봅니다.",
+          guide: [["+1~+2", "신규 수주·출하·최종수요가 2개 이상 지표에서 동시 개선"], ["0", "지표 간 충돌 또는 변화 부족"], ["-1~-2", "수요 둔화가 여러 지표에서 확인"]] },
+        { id: "inventory", label: "재고", hint: "재고 감소+수주 회복이면 턴어라운드. 수요 없는 생산 축소로 인한 재고 감소는 구분해야 합니다.",
+          guide: [["+2", "회복 초입: 재고↓ + 수주↑ + 이익수정 상향 시작"], ["0", "재고 소폭 변동, 방향 불명확"], ["-2", "다운사이클: 재고↑ + 수요↓ + 추정치 하향"]] },
+        { id: "price_margin", label: "가격·마진", hint: "판가 상승이 실제 마진으로 이어지는지, 원가 상승을 전가할 수 있는지 확인합니다.",
+          guide: [["+1~+2", "판가 상승이 마진 개선으로 이어짐 (가격전가력 확보)"], ["0", "판가와 원가가 상쇄"], ["-1~-2", "원가 상승을 전가하지 못해 마진 축소"]] },
+        { id: "supply", label: "공급", hint: "공급 부족은 단기 호재지만, 대규모 증설 경쟁은 2~3년 후 공급과잉 신호가 될 수 있습니다.",
+          guide: [["+1", "공급 부족, 가동률 상승 (단기 호재)"], ["0", "수급 균형"], ["-1", "대규모 증설 경쟁 심화 (2~3년 후 공급과잉 신호)"]] },
+        { id: "estimate_revision", label: "이익수정", hint: "주가는 실적 확정보다 섹터 EPS 추정치의 방향에 먼저 반응합니다.",
+          guide: [["+1~+2", "섹터 EPS 추정치 상향 종목 수 확산"], ["0", "상향·하향 종목 수 비슷"], ["-1~-2", "하향 종목 수 확산"]] },
+        { id: "competition", label: "경쟁구도", hint: "과점 심화와 가격결정력 확보는 밸류에이션 밴드 상향의 근거가 됩니다.",
+          guide: [["+1", "과점 심화, 교섭력 확보"], ["0", "경쟁 구도 변화 없음"], ["-1", "가격경쟁 심화, 대체기술 위협 부상"]] },
+        { id: "policy", label: "정책·규제", hint: "발표일이 아니라 예산 집행·발주·매출 인식 시점을 기준으로 판단합니다.",
+          guide: [["+1", "보조금·감세 등 집행이 매출 인식으로 이어짐"], ["0", "발표만 있고 집행 시점 불확실"], ["-1", "관세·수출통제·규제 강화가 실제 집행 단계"]] }
+      ]
+    },
+    stock: {
+      key: "stock", label: "03 종목", weight: 0.25,
+      desc: "펀더멘털과 기대치의 괴리를 확인하는 단계입니다. 무엇을, 언제 살지를 결정합니다.",
+      items: [
+        { id: "earnings_momentum", label: "실적 모멘텀", hint: "추정치 상향의 폭과 확산(상향 애널리스트 수)이 가장 강력한 단일 팩터입니다.",
+          guide: [["+2", "컨센서스 큰 폭 상향 + 어닝 서프라이즈 + 가이던스 상향"], ["0", "인라인 실적, 가이던스가 주가 결정"], ["-1~-2", "컨센서스 하향, 어닝 미스"]] },
+        { id: "earnings_quality", label: "이익의 질", hint: "이익 증가율이 현금흐름 증가율을 장기간 앞서면 회계 품질 경고 신호입니다.",
+          guide: [["+2", "매출·이익·현금흐름·가이던스 동시 개선 (강한 신호)"], ["0", "이익은 좋으나 현금전환 악화 또는 일회성 이익 (약한 호재)"], ["-1", "매출채권·재고 급증 (숨은 악재)"], ["-2", "ROIC 하락 + 점유율 상실 + 추정치 하향 (구조적 훼손)"]] },
+        { id: "profitability", label: "수익성 (ROIC-WACC)", hint: "ROIC가 자본비용을 지속적으로 상회하는지, 규모 확대가 실제 가치를 창출하는지 봅니다.",
+          guide: [["+1", "ROIC가 WACC를 지속적으로 상회, 마진 추세 개선"], ["0", "ROIC ≈ WACC"], ["-1", "ROIC가 WACC 하회, 규모 확대가 가치 파괴"]] },
+        { id: "financial_stability", label: "재무 안정성", hint: "순부채/EBITDA, 이자보상배율로 금리 민감도와 리파이낸싱 리스크를 확인합니다.",
+          guide: [["+1", "낮은 순부채, 여유있는 이자보상배율"], ["0", "업종 평균 수준"], ["-1~-2", "높은 순부채/EBITDA, 만기 임박 + 금리 민감도 높음"]] },
+        { id: "business_risk", label: "사업 리스크", hint: "현재 호실적이 구조적 우위인지, 일시적 가격·환율 효과인지 구분합니다.",
+          guide: [["+1", "고객·공급사 분산, 낮은 규제 노출, 구조적 우위 확인"], ["0", "평균적 리스크"], ["-1", "고객 집중도 높음, 일시적 가격·환율 효과로 판단됨"]] },
+        { id: "valuation", label: "밸류에이션", hint: "밴드 하단+구조적 쇠퇴는 밸류 트랩. 밴드 상단이어도 추정치 상향이면 강세가 지속될 수 있습니다.",
+          guide: [["+1", "밴드 상단이나 추정치 상향 동반 (강세 지속 가능)"], ["0", "밴드 중단"], ["-1", "밴드 하단 + 구조적 쇠퇴 (밸류 트랩 의심)"]] },
+        { id: "expectation_gap", label: "기대치 역산", hint: "주가가 이미 요구하는 성과와 회사가 실제 달성 가능한 성과의 차이를 확인합니다 (역DCF 등).",
+          guide: [["+1", "암묵적 성장률이 실제 달성 가능한 수준보다 낮음 (여력 있음)"], ["0", "주가 반영 기대치와 실제 성과 전망이 비슷"], ["-1", "주가가 이미 과도한 성과를 요구 (기대치 부담)"]] },
+        { id: "catalyst", label: "촉매", hint: "촉매의 날짜·선반영 정도·시나리오별 반응을 사전에 정리해 둡니다.",
+          guide: [["+1", "사전: 기대 형성 · 가격 미반영"], ["0~-1", "발표: 호재 확정 · 선반영 완료 ('뉴스에 팔아라')"], ["+1~+2", "예상 밖 호재: 가이던스 상향·수주·제도 변화"], ["-2", "예상 밖 악재: 가이던스 하향·규제·회계 이슈"]] }
+      ]
+    },
+    market: {
+      key: "market", label: "04 시장구조", weight: 0.10,
+      desc: "상승의 연료와 지속성, 과열 여부를 확인하는 단계입니다.",
+      items: [
+        { id: "flows", label: "수급", hint: "한 주체의 단기 매수보다 복수 주체의 지속적 유입이 유효한 신호입니다.",
+          guide: [["+1~+2", "외국인·기관 복수 주체의 지속적 순매수"], ["0", "단기 매수, 방향 불명확"], ["-1~-2", "공매도 잔고 증가, 지속적 순매도"]] },
+        { id: "trend", label: "추세", hint: "거래량 증가를 동반한 저항 돌파만 유효합니다. 거래량 없는 돌파는 실패 확률이 높습니다.",
+          guide: [["+1~+2", "거래량 동반 저항 돌파, 이동평균 정배열"], ["0", "박스권, 거래량 없는 돌파 시도"], ["-1~-2", "거래량 동반 지지선 붕괴"]] },
+        { id: "relative_strength", label: "상대강도", hint: "지수 조정 시 덜 하락하고 회복이 빠른 종목을 우선합니다.",
+          guide: [["+1", "업종·지수 대비 RS 강세, 52주 신고가 근접"], ["0", "지수와 유사한 흐름"], ["-1", "지수 대비 RS 약세, 조정 시 더 크게 하락"]] },
+        { id: "breadth", label: "브레드스", hint: "지수 상승이 소수 대형주에만 집중되면 랠리의 내구성이 낮습니다.",
+          guide: [["+1~+2", "상승 종목 수 확산, 신고가-신저가 폭 확대"], ["0", "혼조"], ["-1~-2", "소수 대형주에만 상승 집중 (내구성 낮음)"]] },
+        { id: "derivatives", label: "파생·레버리지", hint: "극단적 낙관(옵션 스큐, 신용잔고 과열)은 추세 지속이 아니라 조정 취약성을 뜻할 수 있습니다.",
+          guide: [["0~+1", "포지셔닝 중립적"], ["-1", "옵션 스큐·신용잔고 과열 (극단적 낙관, 조정 취약)"], ["-1", "풋콜 비율 극단적 (과도한 헤지 수요)"]] },
+        { id: "supply_overhang", label: "공급 물량", hint: "IPO·유상증자·CB·락업 해제는 펀더멘털과 무관한 물량 부담이니 캘린더로 관리합니다.",
+          guide: [["+1", "물량 부담 없음, 자사주 매입"], ["0", "예정된 물량이 제한적"], ["-1~-2", "대규모 IPO·유상증자·락업 해제가 임박"]] }
+      ]
+    }
+  };
+
+  var STAGE_ORDER = ["macro", "industry", "stock", "market"];
+
+  var VETO_TRIGGERS = [
+    { id: "hy_spread", label: "① 하이일드 스프레드 급확대", refKey: "hy_oas_spread" },
+    { id: "real_rate", label: "② 실질금리 급등", refKey: "us10y_real" },
+    { id: "earnings_downgrade", label: "③ 이익수정 하향의 확산", refKey: null },
+    { id: "dollar_fx", label: "④ 달러 급등 / 원화 급락", refKey: "usdkrw" },
+    { id: "credit_event", label: "⑤ 신용 이벤트 발생 (디폴트·유동성 경색)", refKey: null }
+  ];
+
+  var BANDS = [
+    { min: 1.5, max: Infinity, minInc: true, maxInc: false, label: "공격적 확대", memo: "목표 비중 상한까지. 단, 브레드스와 신용 확인은 필수.", tone: "pos" },
+    { min: 0.5, max: 1.5, minInc: true, maxInc: false, label: "선별 매수 · 유지", memo: "상위 단계가 지지하는 종목만. 이벤트 리스크는 별도로 감액.", tone: "pos" },
+    { min: -0.5, max: 0.5, minInc: false, maxInc: false, label: "관망 · 리밸런싱", memo: "점수가 낮은 항목의 다음 데이터가 나올 때까지 대기.", tone: "neu" },
+    { min: -1.5, max: -0.5, minInc: false, maxInc: true, label: "비중 축소 · 헤지", memo: "손절이 아니라 노출 관리. 반등 시 재평가.", tone: "neg" },
+    { min: -Infinity, max: -1.5, minInc: true, maxInc: true, label: "리스크 축소", memo: "신규 매수 중단. 현금 · 방어 · 헤지 비중 확대.", tone: "neg" }
+  ];
+
+  var MATRIX = [
+    { m: "강세", i: "강세", s: "강세", label: "최적", memo: "목표 비중까지 확대. 추세 추종. 이익 실현은 밴드 상단·과열 신호 확인 후." },
+    { m: "강세", i: "약세", s: "강세", label: "선별", memo: "매크로는 우호적이나 산업이 역행. 소수 종목만 제한적 비중." },
+    { m: "중립", i: "강세", s: "강세", label: "양호", memo: "종목장. 지수 베팅보다 알파에 집중. 매크로 악화 전환 시 신속히 축소." },
+    { m: "약세", i: "강세", s: "강세", label: "방어", memo: "매크로 베토 우선. 신규 노출 제한, 소액 분할 또는 헤지." },
+    { m: "약세", i: "약세", s: "강세", label: "회피", memo: "개별 호재는 대체로 힘을 쓰지 못함. 반등은 비중 축소의 기회로 활용." },
+    { m: "약세", i: "약세", s: "약세", label: "현금·방어", memo: "현금·국채·방어주 중심. 다음 사이클의 매수력을 보존하는 것이 목표." }
+  ];
+
+  var MACRO_INSERT_MAP = {
+    base_rate: ["fed_funds_rate"],
+    bond_yield: ["us10y_nominal", "us10y_real", "breakeven_inflation"],
+    credit: ["hy_oas_spread"],
+    volatility: ["vix"],
+    kr_fx: ["usdkrw"]
+  };
+  var MARKET_INSERT_MAP = { trend: ["kospi"] };
+
+  var STORAGE_RECORDS = "moneytrend_checklist_records_v1";
+  var STORAGE_DRAFT = "moneytrend_checklist_draft_v1";
+  var STORAGE_AI_KEY = "moneytrend_ai_key_v1";
+  var AI_MODEL = "claude-sonnet-5";
+
+  /* ---------------------------------------------------------- */
+  /* 2. 상태                                                      */
+  /* ---------------------------------------------------------- */
+
+  function freshCurrent() {
+    var cur = { meta: { name: "", market: "KOSPI", date: todayStr() }, veto: {}, macroRef: null };
+    STAGE_ORDER.forEach(function (sk) {
+      cur[sk] = {};
+      STAGES[sk].items.forEach(function (it) {
+        cur[sk][it.id] = { score: 0, note: "" };
+      });
+    });
+    VETO_TRIGGERS.forEach(function (v) { cur.veto[v.id] = false; });
+    return cur;
+  }
+
+  function todayStr() {
+    var d = new Date();
+    return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate());
+  }
+  function pad(n) { return n < 10 ? "0" + n : "" + n; }
+
+  var state = {
+    current: loadDraft() || freshCurrent(),
+    records: loadRecords(),
+    activeTab: "guide",
+    ai: {
+      apiKey: (function () { try { return localStorage.getItem(STORAGE_AI_KEY) || ""; } catch (e) { return ""; } })(),
+      rememberKey: (function () { try { return !!localStorage.getItem(STORAGE_AI_KEY); } catch (e) { return false; } })(),
+      targetName: "",
+      context: "",
+      loading: false,
+      error: "",
+      draft: null
+    }
+  };
+
+  function loadRecords() {
+    try {
+      var raw = localStorage.getItem(STORAGE_RECORDS);
+      return raw ? JSON.parse(raw) : [];
+    } catch (e) { return []; }
+  }
+  function saveRecords() {
+    try { localStorage.setItem(STORAGE_RECORDS, JSON.stringify(state.records)); } catch (e) {}
+  }
+  function loadDraft() {
+    try {
+      var raw = localStorage.getItem(STORAGE_DRAFT);
+      return raw ? JSON.parse(raw) : null;
+    } catch (e) { return null; }
+  }
+  function saveDraft() {
+    try { localStorage.setItem(STORAGE_DRAFT, JSON.stringify(state.current)); } catch (e) {}
+  }
+
+  /* ---------------------------------------------------------- */
+  /* 3. 계산 로직                                                  */
+  /* ---------------------------------------------------------- */
+
+  function stageAvg(cur, key) {
+    var items = STAGES[key].items;
+    var sum = 0;
+    items.forEach(function (it) { sum += cur[key][it.id].score; });
+    return round2(sum / items.length);
+  }
+
+  function vetoCount(cur) {
+    var n = 0;
+    VETO_TRIGGERS.forEach(function (v) { if (cur.veto[v.id]) n++; });
+    return n;
+  }
+
+  function computeMacro(cur) {
+    var raw = stageAvg(cur, "macro");
+    var creditScore = cur.macro.credit.score;
+    var capped = raw;
+    var creditCapApplied = false;
+    if (creditScore === -2 && raw > -1) { capped = -1; creditCapApplied = true; }
+    var vc = vetoCount(cur);
+    var final = capped;
+    var vetoCapApplied = false;
+    if (vc >= 1 && final > 0) { final = 0; vetoCapApplied = true; }
+    return { raw: raw, capped: round2(capped), final: round2(final), creditCapApplied: creditCapApplied, vetoCount: vc, vetoCapApplied: vetoCapApplied, vetoBlockApplied: vc >= 2 };
+  }
+
+  function computeAll(cur) {
+    var macro = computeMacro(cur);
+    var industry = stageAvg(cur, "industry");
+    var stock = stageAvg(cur, "stock");
+    var market = stageAvg(cur, "market");
+    var total = round2(macro.final * 0.40 + industry * 0.25 + stock * 0.25 + market * 0.10);
+    var band = bandFor(total);
+    var cls = { macro: classify(macro.final), industry: classify(industry), stock: classify(stock) };
+    var matrix = matrixLookup(cls.macro, cls.industry, cls.stock);
+    return { macro: macro, industry: industry, stock: stock, market: market, total: total, band: band, cls: cls, matrix: matrix };
+  }
+
+  function round2(n) { return Math.round(n * 100) / 100; }
+
+  function bandFor(total) {
+    for (var i = 0; i < BANDS.length; i++) {
+      var b = BANDS[i];
+      var minOk = b.minInc ? total >= b.min : total > b.min;
+      var maxOk = b.maxInc ? total <= b.max : total < b.max;
+      if (minOk && maxOk) return b;
+    }
+    return BANDS[2];
+  }
+
+  function classify(v) {
+    if (v >= 0.5) return "강세";
+    if (v <= -0.5) return "약세";
+    return "중립";
+  }
+
+  function matrixLookup(m, i, s) {
+    for (var k = 0; k < MATRIX.length; k++) {
+      var row = MATRIX[k];
+      if (row.m === m && row.i === i && row.s === s) return row;
+    }
+    return null;
+  }
+
+  /* ---------------------------------------------------------- */
+  /* 4. 렌더링 유틸                                                */
+  /* ---------------------------------------------------------- */
+
+  function el(tag, attrs, children) {
+    var e = document.createElement(tag);
+    if (attrs) {
+      Object.keys(attrs).forEach(function (k) {
+        if (attrs[k] === undefined || attrs[k] === null || attrs[k] === false) return;
+        if (k === "class") e.className = attrs[k];
+        else if (k === "html") e.innerHTML = attrs[k];
+        else if (k.indexOf("on") === 0) e.addEventListener(k.slice(2), attrs[k]);
+        else e.setAttribute(k, attrs[k] === true ? "" : attrs[k]);
+      });
+    }
+    (children || []).forEach(function (c) {
+      if (c == null) return;
+      e.appendChild(typeof c === "string" ? document.createTextNode(c) : c);
+    });
+    return e;
+  }
+
+  function fmtSigned(n, digits) {
+    digits = digits == null ? 2 : digits;
+    var s = n.toFixed(digits);
+    if (n > 0) s = "+" + s;
+    return s;
+  }
+
+  function toast(msg) {
+    var wrap = document.getElementById("toastWrap");
+    var t = el("div", { class: "toast" }, [msg]);
+    wrap.appendChild(t);
+    setTimeout(function () { t.remove(); }, 3200);
+  }
+
+  function applyMacroRefJson(text, sourceLabel, silent) {
+    try {
+      var parsed = JSON.parse(text);
+      if (!parsed.items) throw new Error("형식 오류");
+      state.current.macroRef = parsed;
+      saveDraft();
+      renderAll();
+      if (!silent) toast((sourceLabel || "자동조회 데이터") + "를 적용했습니다.");
+      return true;
+    } catch (err) {
+      if (!silent) toast("JSON 파싱 실패. " + (sourceLabel === "파일" ? "data.json 파일이 맞는지 확인해 주세요." : "스크립트 출력 전체를 그대로 붙여넣었는지 확인해 주세요."));
+      return false;
+    }
+  }
+
+  function fetchSiteData(silent) {
+    return fetch("./data.json", { cache: "no-store" })
+      .then(function (res) { if (!res.ok) throw new Error("HTTP " + res.status); return res.text(); })
+      .then(function (text) {
+        var ok = applyMacroRefJson(text, "사이트 자동 데이터", true);
+        if (ok && !silent) toast("사이트에 배포된 최신 매크로 데이터를 불러왔습니다.");
+        else if (!ok && !silent) toast("data.json을 해석할 수 없습니다.");
+        return ok;
+      })
+      .catch(function () {
+        if (!silent) toast("data.json을 불러오지 못했습니다. GitHub Pages로 배포된 주소에서만 자동으로 동작합니다.");
+        return false;
+      });
+  }
+
+  /* ---------------------------------------------------------- */
+  /* 5. 탭 & 요약바                                                */
+  /* ---------------------------------------------------------- */
+
+  var TAB_DEFS = [
+    { id: "guide", n: "00", label: "안내" },
+    { id: "macro", n: "01", label: "매크로" },
+    { id: "industry", n: "02", label: "산업" },
+    { id: "stock", n: "03", label: "종목" },
+    { id: "market", n: "04", label: "시장구조" },
+    { id: "result", n: "07", label: "총점·판단" },
+    { id: "records", n: "＋", label: "저장 기록" },
+    { id: "auto", n: "⇩", label: "자동조회" },
+    { id: "ai", n: "✨", label: "AI 초안" }
+  ];
+
+  function renderTabs() {
+    var tabs = document.getElementById("tabs");
+    tabs.innerHTML = "";
+    TAB_DEFS.forEach(function (t) {
+      var btn = el("button", {
+        class: "tab-btn" + (state.activeTab === t.id ? " active" : ""),
+        onclick: function () { state.activeTab = t.id; renderAll(); }
+      }, [el("span", { class: "n" }, [t.n]), t.label]);
+      tabs.appendChild(btn);
+    });
+    TAB_DEFS.forEach(function (t) {
+      document.getElementById("panel-" + t.id).className = "panel" + (state.activeTab === t.id ? " active" : "");
+    });
+  }
+
+  function renderSummaryBar() {
+    var res = computeAll(state.current);
+    var bar = document.getElementById("summaryBar");
+    bar.innerHTML = "";
+    bar.appendChild(el("div", { class: "summary-score" }, [
+      el("span", { class: "val mono" }, [fmtSigned(res.total)]),
+      el("span", { class: "lbl" }, ["가중 총점"])
+    ]));
+    var tone = res.band.tone;
+    bar.appendChild(el("span", { class: "pill " + tone }, [el("span", { class: "pill-dot" }), res.band.label]));
+    if (res.macro.vetoBlockApplied) {
+      bar.appendChild(el("span", { class: "pill veto" }, ["⚠ 베토 발동 — 노출 축소 · 신규진입 중단"]));
+    } else if (res.macro.vetoCapApplied) {
+      bar.appendChild(el("span", { class: "pill neg" }, ["캡 발동 — 매크로 0 상한"]));
+    }
+    var chips = el("div", { class: "summary-stages" }, [
+      stageChip("매크로", res.macro.final, 40),
+      stageChip("산업", res.industry, 25),
+      stageChip("종목", res.stock, 25),
+      stageChip("구조", res.market, 10)
+    ]);
+    bar.appendChild(chips);
+  }
+
+  function stageChip(label, val, w) {
+    return el("div", { class: "stage-chip" }, [label + " ", el("b", { class: "mono" }, [fmtSigned(val)]), " (" + w + "%)"]);
+  }
+
+  /* ---------------------------------------------------------- */
+  /* 6. 가이드 탭                                                  */
+  /* ---------------------------------------------------------- */
+
+  function renderGuide() {
+    var p = document.getElementById("panel-guide");
+    p.innerHTML = "";
+    p.appendChild(el("div", { class: "card", style: "padding:20px 22px;" }, [
+      el("h2", { class: "serif", style: "margin-top:0;" }, ["00 점수 체계"]),
+      el("p", { class: "stage-desc", style: "margin-bottom:14px;" }, [
+        "느낌을 숫자로 바꾸는 도구입니다. 항목마다 -2~+2로 채점하고, 단계별 평균을 낸 뒤 가중치를 곱해 하나의 총점을 만듭니다."
+      ]),
+      scoreLegend(),
+      el("div", { class: "table-wrap", style: "margin-top:18px;" }, [weightTable()]),
+      el("p", { class: "stage-desc", style: "margin:14px 0 0;" }, [
+        "가중 총점 = 매크로×0.40 + 산업×0.25 + 종목×0.25 + 시장구조×0.10  (범위 -2.0 ~ +2.0)"
+      ]),
+      el("div", { class: "callout", style: "margin-top:16px;" }, [
+        el("strong", {}, ["안전장치 — 캡과 베토. "]),
+        "신용 항목이 -2면 매크로 단계 점수는 -1을 넘지 못합니다. 베토 트리거 1개 발생 시 매크로 점수는 0을 넘지 못하고(캡), 2개 이상이면 가중 총점과 무관하게 노출을 한 단계 축소하고 신규 진입을 중단합니다(베토). 각 단계 탭에서 채점하면 이 값이 자동 반영됩니다."
+      ])
+    ]));
+  }
+
+  function scoreLegend() {
+    var rows = [
+      ["+2", "매우 강세", "방향·폭·지속성·확산이 모두 우호적", "pos"],
+      ["+1", "강세", "핵심 지표 다수가 개선", "pos"],
+      ["0", "중립·혼조", "지표끼리 충돌하거나 변화가 부족", "neu"],
+      ["-1", "약세", "핵심 지표 다수가 악화", "neg"],
+      ["-2", "매우 약세", "신용·유동성·이익추정이 동반 악화", "neg"]
+    ];
+    var wrap = el("div", { class: "table-wrap" });
+    var t = el("table");
+    t.appendChild(el("thead", {}, [el("tr", {}, [el("th", {}, ["점수"]), el("th", {}, ["판정"]), el("th", {}, ["기준"])])]));
+    var tb = el("tbody");
+    rows.forEach(function (r) {
+      tb.appendChild(el("tr", {}, [
+        el("td", {}, [el("span", { class: "pill " + r[3] }, [r[0]])]),
+        el("td", { style: "font-weight:600;" }, [r[1]]),
+        el("td", { style: "color:var(--ink-dim);" }, [r[2]])
+      ]));
+    });
+    t.appendChild(tb);
+    wrap.appendChild(t);
+    return wrap;
+  }
+
+  function weightTable() {
+    var t = el("table");
+    t.appendChild(el("thead", {}, [el("tr", {}, [el("th", {}, ["단계"]), el("th", {}, ["가중치"]), el("th", {}, ["포함 항목"])])]));
+    var tb = el("tbody");
+    STAGE_ORDER.forEach(function (sk) {
+      var s = STAGES[sk];
+      tb.appendChild(el("tr", {}, [
+        el("td", { style: "font-weight:600;" }, [s.label]),
+        el("td", { class: "mono" }, [(s.weight * 100) + "%"]),
+        el("td", { style: "color:var(--ink-dim);" }, [s.items.map(function (i) { return i.label; }).join(" · ")])
+      ]));
+    });
+    t.appendChild(tb);
+    return t;
+  }
+
+  /* ---------------------------------------------------------- */
+  /* 7. 단계 입력 탭                                               */
+  /* ---------------------------------------------------------- */
+
+  function renderStage(sk) {
+    var p = document.getElementById("panel-" + sk);
+    p.innerHTML = "";
+    var s = STAGES[sk];
+    var head = el("div", { class: "card", style: "padding:18px 22px;margin-bottom:16px;" }, [
+      el("div", { class: "stage-head" }, [
+        el("h2", { class: "serif" }, [s.label]),
+        el("span", { class: "weight" }, ["가중치 " + (s.weight * 100) + "%"])
+      ]),
+      el("p", { class: "stage-desc", style: "margin-bottom:0;" }, [s.desc])
+    ]);
+    p.appendChild(head);
+
+    s.items.forEach(function (it) {
+      p.appendChild(renderItemCard(sk, it));
+    });
+
+    if (sk === "macro") {
+      p.appendChild(renderVetoCard());
+    }
+  }
+
+  var expandedGuides = {};
+
+  function renderItemCard(sk, it) {
+    var cur = state.current[sk][it.id];
+    var card = el("div", { class: "card item-card" });
+    var labelWrap = el("div", {}, [
+      el("div", { class: "item-label" }, [it.label]),
+      el("p", { class: "item-hint" }, [it.hint])
+    ]);
+    if (it.guide && it.guide.length) {
+      var isOpen = !!expandedGuides[it.id];
+      labelWrap.appendChild(el("button", {
+        class: "guide-toggle", type: "button",
+        onclick: function () { expandedGuides[it.id] = !isOpen; renderAll(); }
+      }, [isOpen ? "채점 가이드 접기 ▲" : "채점 가이드 보기 ▾"]));
+      if (isOpen) {
+        var gt = el("table", { class: "guide-table" });
+        var gtb = el("tbody");
+        it.guide.forEach(function (row) {
+          gtb.appendChild(el("tr", {}, [
+            el("td", { class: "mono" }, [row[0]]),
+            el("td", {}, [row[1]])
+          ]));
+        });
+        gt.appendChild(gtb);
+        labelWrap.appendChild(gt);
+      }
+    }
+    card.appendChild(el("div", { class: "item-top" }, [
+      labelWrap,
+      el("div", { class: "item-score-out" }, [fmtSigned(cur.score, 0)])
+    ]));
+
+    var seg = el("div", { class: "seg" });
+    [-2, -1, 0, 1, 2].forEach(function (v) {
+      var cls = v === -2 ? "selm2" : v === -1 ? "selm1" : v === 0 ? "sel0" : v === 1 ? "sel1" : "sel2";
+      var btn = el("button", {
+        class: (cur.score === v ? "active " : "") + cls,
+        type: "button",
+        onclick: (function (v) {
+          return function () {
+            state.current[sk][it.id].score = v;
+            saveDraft();
+            renderAll();
+          };
+        })(v)
+      }, [fmtSigned(v, 0)]);
+      seg.appendChild(btn);
+    });
+    card.appendChild(seg);
+
+    var noteRow = el("div", { class: "note-row" });
+    var ta = el("textarea", {
+      class: "note", placeholder: "근거 메모 (참고 데이터·이유). 비워두면 0점으로 처리됩니다.",
+      oninput: function (e) {
+        state.current[sk][it.id].note = e.target.value;
+        saveDraft();
+      }
+    });
+    ta.value = cur.note;
+    noteRow.appendChild(ta);
+
+    var insertKeys = (sk === "macro" ? MACRO_INSERT_MAP : sk === "market" ? MARKET_INSERT_MAP : null);
+    if (insertKeys && insertKeys[it.id] && state.current.macroRef) {
+      var btnInsert = el("button", {
+        class: "insert-btn", type: "button",
+        onclick: function () { insertRefIntoNote(sk, it.id, insertKeys[it.id]); }
+      }, ["📎 참고자료 삽입"]);
+      noteRow.appendChild(btnInsert);
+    }
+    card.appendChild(noteRow);
+    return card;
+  }
+
+  function renderVetoCard() {
+    var res = computeMacro(state.current);
+    var card = el("div", { class: "card veto-card" });
+    card.appendChild(el("div", { class: "item-label" }, ["매크로 안전장치 — 베토 트리거 5가지"]));
+    card.appendChild(el("p", { class: "item-hint" }, ["1개 발생 시 매크로 점수는 0을 넘지 못합니다(캡). 2개 이상이면 총점과 무관하게 노출을 한 단계 축소하고 신규 진입을 중단합니다(베토)."]));
+    var list = el("div", { class: "veto-list" });
+    VETO_TRIGGERS.forEach(function (v) {
+      var row = el("label", { class: "veto-row" });
+      var cb = el("input", {
+        type: "checkbox",
+        onchange: function (e) {
+          state.current.veto[v.id] = e.target.checked;
+          saveDraft();
+          renderAll();
+        }
+      });
+      cb.checked = !!state.current.veto[v.id];
+      var textWrap = el("div", {}, [el("div", { class: "t" }, [v.label])]);
+      var refHint = refHintFor(v);
+      if (refHint) textWrap.appendChild(el("div", { class: "ref" }, [refHint]));
+      row.appendChild(cb);
+      row.appendChild(textWrap);
+      list.appendChild(row);
+    });
+    card.appendChild(list);
+
+    var statusMsg;
+    if (res.vetoBlockApplied) statusMsg = el("div", { class: "veto-status", style: "color:var(--negative);" }, ["⚠ 베토 발동 중 (" + res.vetoCount + "개) — 노출 한 단계 축소, 신규 진입 중단"]);
+    else if (res.vetoCapApplied) statusMsg = el("div", { class: "veto-status", style: "color:var(--neutral-signal);" }, ["캡 발동 중 (1개) — 매크로 점수 0 상한 적용"]);
+    else statusMsg = el("div", { class: "veto-status", style: "color:var(--ink-faint);" }, ["트리거 없음"]);
+    card.appendChild(statusMsg);
+    return card;
+  }
+
+  function refHintFor(trigger) {
+    var ref = state.current.macroRef;
+    if (!ref || !trigger.refKey) return null;
+    var item = ref.items && ref.items[trigger.refKey];
+    if (!item || !item.ok || !item.data) return null;
+    var d = item.data;
+    var chg20 = d.vs_20pts_ago;
+    if (trigger.id === "hy_spread" && ref.hy_spread_reference) {
+      var hr = ref.hy_spread_reference;
+      return "참고: 최근 20거래일 변화 " + fmtSigned(hr.change_20d_pct_points, 2) + "%p · 75bp 기준 초과: " + (hr.exceeds_75bp_reference ? "예" : "아니오");
+    }
+    if (chg20) return "참고: " + item.label + " 최근값 " + d.latest + " · 20거래일 변화 " + fmtSigned(chg20.change, 2);
+    return "참고: " + item.label + " 최근값 " + d.latest;
+  }
+
+  function insertRefIntoNote(sk, itemId, refKeys) {
+    var ref = state.current.macroRef;
+    if (!ref) return;
+    var lines = [];
+    refKeys.forEach(function (k) {
+      var it = ref.items && ref.items[k];
+      if (!it || !it.ok || !it.data) return;
+      var d = it.data;
+      var parts = [it.label + " " + d.latest];
+      if (d.vs_5pts_ago) parts.push("1주전대비 " + fmtSigned(d.vs_5pts_ago.change, 2));
+      if (d.vs_20pts_ago) parts.push("1개월전대비 " + fmtSigned(d.vs_20pts_ago.change, 2));
+      lines.push(parts.join(", ") + " (" + d.latest_date + " 기준)");
+    });
+    if (!lines.length) { toast("삽입할 자동조회 데이터가 없습니다."); return; }
+    var cur = state.current[sk][itemId];
+    var prefix = cur.note ? cur.note + "\n" : "";
+    cur.note = prefix + "[자동조회] " + lines.join(" / ");
+    saveDraft();
+    renderAll();
+    toast("참고자료를 메모에 반영했습니다.");
+  }
+
+  /* ---------------------------------------------------------- */
+  /* 8. 총점·판단 탭                                              */
+  /* ---------------------------------------------------------- */
+
+  function renderResult() {
+    var p = document.getElementById("panel-result");
+    p.innerHTML = "";
+    var res = computeAll(state.current);
+
+    var totalCard = el("div", { class: "total-card" }, [
+      el("div", {}, [
+        el("div", { class: "num mono" }, [fmtSigned(res.total)])
+      ]),
+      el("div", {}, [
+        el("div", { class: "band" }, [res.band.label]),
+        el("div", { class: "memo" }, [res.band.memo])
+      ])
+    ]);
+    p.appendChild(totalCard);
+
+    if (res.macro.vetoBlockApplied) {
+      p.appendChild(el("div", { class: "callout warn" }, [
+        el("strong", {}, ["베토가 총점보다 우선합니다. "]),
+        "베토 트리거가 " + res.macro.vetoCount + "개 발동했습니다. 총점이 " + fmtSigned(res.total) + "이어도 노출을 한 단계 축소하고 신규 진입을 중단하세요."
+      ]));
+    } else if (res.macro.creditCapApplied) {
+      p.appendChild(el("div", { class: "callout" }, [
+        el("strong", {}, ["신용 안전장치 적용됨. "]),
+        "신용 항목이 -2점이라 매크로 단계 점수가 -1로 상한 조정되었습니다 (원 평균 " + fmtSigned(res.macro.raw) + ")."
+      ]));
+    }
+
+    var grid = el("div", { class: "result-grid" }, [
+      stageTile("매크로", res.macro.final, 40),
+      stageTile("산업", res.industry, 25),
+      stageTile("종목", res.stock, 25),
+      stageTile("시장구조", res.market, 10)
+    ]);
+    p.appendChild(grid);
+
+    if (res.matrix) {
+      p.appendChild(el("div", { class: "callout" }, [
+        el("strong", {}, ["정성적 조합 판단 — " + res.matrix.label + ". "]),
+        res.matrix.memo,
+        el("div", { style: "margin-top:6px;color:var(--ink-faint);font-size:12px;" }, [
+          "(매크로 " + res.cls.macro + " · 산업 " + res.cls.industry + " · 종목 " + res.cls.stock + ")"
+        ])
+      ]));
+    }
+
+    p.appendChild(el("div", { class: "section-title", style: "margin-top:24px;" }, ["가중 총점 → 행동 구간"]));
+    p.appendChild(el("div", { class: "table-wrap" }, [bandTable(res.total)]));
+
+    p.appendChild(el("div", { class: "section-title", style: "margin-top:24px;" }, ["단계 조합별 판단 매트릭스"]));
+    p.appendChild(el("div", { class: "table-wrap" }, [matrixTable(res.cls)]));
+
+    p.appendChild(el("div", { class: "section", style: "margin-top:26px;" }, [
+      el("div", { class: "section-title" }, ["이 평가 저장하기"]),
+      saveForm()
+    ]));
+  }
+
+  function stageTile(label, val, w) {
+    return el("div", { class: "stage-tile" }, [
+      el("div", { class: "k" }, [label + " · " + w + "%"]),
+      el("div", { class: "v mono" }, [fmtSigned(val)])
+    ]);
+  }
+
+  function bandTable(total) {
+    var t = el("table");
+    t.appendChild(el("thead", {}, [el("tr", {}, [el("th", {}, ["가중 총점"]), el("th", {}, ["행동"]), el("th", {}, ["메모"])])]));
+    var tb = el("tbody");
+    BANDS.forEach(function (b) {
+      var minOk = b.minInc ? total >= b.min : total > b.min;
+      var maxOk = b.maxInc ? total <= b.max : total < b.max;
+      var active = minOk && maxOk;
+      var rangeStr = (b.min === -Infinity ? "" : (b.minInc ? "≥ " : "> ") + fmtSigned(b.min)) +
+        (b.max === Infinity ? "" : "  " + (b.maxInc ? "≤ " : "< ") + fmtSigned(b.max));
+      tb.appendChild(el("tr", { style: active ? "background:var(--accent-soft);" : "" }, [
+        el("td", { class: "mono" }, [rangeStr]),
+        el("td", { style: "font-weight:600;" }, [b.label]),
+        el("td", { style: "color:var(--ink-dim);" }, [b.memo])
+      ]));
+    });
+    t.appendChild(tb);
+    return t;
+  }
+
+  function matrixTable(cls) {
+    var t = el("table", { class: "matrix-table" });
+    t.appendChild(el("thead", {}, [el("tr", {}, [el("th", {}, ["매크로"]), el("th", {}, ["산업"]), el("th", {}, ["종목"]), el("th", {}, ["종합"]), el("th", {}, ["실행"])])]));
+    var tb = el("tbody");
+    MATRIX.forEach(function (row) {
+      var active = row.m === cls.macro && row.i === cls.industry && row.s === cls.stock;
+      tb.appendChild(el("tr", { style: active ? "background:var(--accent-soft);" : "" }, [
+        el("td", {}, [row.m]), el("td", {}, [row.i]), el("td", {}, [row.s]),
+        el("td", { style: "font-weight:700;" }, [row.label]),
+        el("td", { style: "color:var(--ink-dim);" }, [row.memo])
+      ]));
+    });
+    t.appendChild(tb);
+    return t;
+  }
+
+  function saveForm() {
+    var card = el("div", { class: "card", style: "padding:18px 20px;" });
+    var nameField = el("input", { type: "text", placeholder: "예: 삼성전자, 반도체 업종" });
+    nameField.value = state.current.meta.name || "";
+    nameField.addEventListener("input", function (e) { state.current.meta.name = e.target.value; saveDraft(); });
+
+    var marketField = el("select", {}, ["KOSPI", "KOSDAQ", "US", "기타"].map(function (m) {
+      var o = el("option", { value: m }, [m]);
+      if (state.current.meta.market === m) o.selected = true;
+      return o;
+    }));
+    marketField.addEventListener("change", function (e) { state.current.meta.market = e.target.value; saveDraft(); });
+
+    var dateField = el("input", { type: "date" });
+    dateField.value = state.current.meta.date || todayStr();
+    dateField.addEventListener("input", function (e) { state.current.meta.date = e.target.value; saveDraft(); });
+
+    var row = el("div", { class: "row" }, [
+      el("div", { class: "field" }, [el("label", {}, ["종목 / 업종명"]), nameField]),
+      el("div", { class: "field" }, [el("label", {}, ["시장"]), marketField]),
+      el("div", { class: "field" }, [el("label", {}, ["판정일"]), dateField])
+    ]);
+    card.appendChild(row);
+
+    var btnRow = el("div", { class: "row", style: "margin-top:14px;" }, [
+      el("button", {
+        class: "btn primary", onclick: function () {
+          if (!state.current.meta.name.trim()) { toast("종목/업종명을 입력해 주세요."); return; }
+          var snap = computeAll(state.current);
+          var rec = JSON.parse(JSON.stringify(state.current));
+          rec.id = "r_" + Date.now() + "_" + Math.random().toString(36).slice(2, 7);
+          rec.savedAt = new Date().toISOString();
+          rec.snapshot = { total: snap.total, band: snap.band.label, macro: snap.macro.final, industry: snap.industry, stock: snap.stock, market: snap.market, veto: snap.macro.vetoCount };
+          state.records.unshift(rec);
+          saveRecords();
+          toast("저장했습니다: " + rec.meta.name);
+          state.activeTab = "records";
+          renderAll();
+        }
+      }, ["💾 기록으로 저장"]),
+      el("button", {
+        class: "btn ghost", onclick: function () {
+          state.current = freshCurrent();
+          saveDraft();
+          renderAll();
+          toast("입력을 초기화했습니다.");
+        }
+      }, ["초기화"])
+    ]);
+    card.appendChild(btnRow);
+    return card;
+  }
+
+  /* ---------------------------------------------------------- */
+  /* 9. 저장 기록 탭                                               */
+  /* ---------------------------------------------------------- */
+
+  var confirmDeleteId = null;
+
+  function renderRecords() {
+    var p = document.getElementById("panel-records");
+    p.innerHTML = "";
+
+    var toolbar = el("div", { class: "row", style: "margin-bottom:14px;" }, [
+      el("button", { class: "btn", onclick: exportRecords }, ["⬇ JSON으로 내보내기"]),
+      el("label", { class: "btn", style: "position:relative;overflow:hidden;" }, [
+        "⬆ JSON 가져오기",
+        (function () {
+          var inp = el("input", { type: "file", accept: "application/json", style: "position:absolute;inset:0;opacity:0;cursor:pointer;" });
+          inp.addEventListener("change", importRecordsFile);
+          return inp;
+        })()
+      ])
+    ]);
+    p.appendChild(el("div", { class: "section-title" }, ["저장된 기록 (" + state.records.length + "건)"]));
+    p.appendChild(toolbar);
+
+    if (!state.records.length) {
+      p.appendChild(el("div", { class: "card empty" }, ["아직 저장된 기록이 없습니다. '총점·판단' 탭에서 평가를 완료한 뒤 저장해 보세요."]));
+      return;
+    }
+
+    var wrap = el("div", { class: "table-wrap" });
+    var t = el("table");
+    t.appendChild(el("thead", {}, [el("tr", {}, [
+      el("th", {}, ["날짜"]), el("th", {}, ["종목/업종"]), el("th", {}, ["시장"]),
+      el("th", {}, ["총점"]), el("th", {}, ["구간"]), el("th", {}, ["베토"]), el("th", {}, ["액션"])
+    ])]));
+    var tb = el("tbody");
+    state.records.forEach(function (rec) {
+      var toneClass = rec.snapshot.total >= 0.5 ? "pos" : rec.snapshot.total <= -0.5 ? "neg" : "neu";
+      var actionsCell;
+      if (confirmDeleteId === rec.id) {
+        actionsCell = el("div", { class: "row" }, [
+          el("button", { class: "btn danger sm", onclick: function () { deleteRecord(rec.id); } }, ["삭제 확정"]),
+          el("button", { class: "btn ghost sm", onclick: function () { confirmDeleteId = null; renderAll(); } }, ["취소"])
+        ]);
+      } else {
+        actionsCell = el("div", { class: "row" }, [
+          el("button", { class: "btn sm", onclick: function () { loadRecord(rec.id); } }, ["불러오기"]),
+          el("button", { class: "btn ghost sm danger", onclick: function () { confirmDeleteId = rec.id; renderAll(); } }, ["삭제"])
+        ]);
+      }
+      tb.appendChild(el("tr", {}, [
+        el("td", { class: "mono" }, [rec.meta.date || "-"]),
+        el("td", { style: "font-weight:600;" }, [rec.meta.name]),
+        el("td", {}, [rec.meta.market]),
+        el("td", { class: "mono" }, [fmtSigned(rec.snapshot.total)]),
+        el("td", {}, [el("span", { class: "pill " + toneClass }, [rec.snapshot.band])]),
+        el("td", { class: "mono" }, [rec.snapshot.veto > 0 ? "⚠ " + rec.snapshot.veto : "-"]),
+        el("td", {}, [actionsCell])
+      ]));
+    });
+    t.appendChild(tb);
+    wrap.appendChild(t);
+    p.appendChild(wrap);
+  }
+
+  function loadRecord(id) {
+    var rec = state.records.find(function (r) { return r.id === id; });
+    if (!rec) return;
+    var clone = JSON.parse(JSON.stringify(rec));
+    delete clone.id; delete clone.savedAt; delete clone.snapshot;
+    state.current = clone;
+    saveDraft();
+    state.activeTab = "result";
+    renderAll();
+    toast("불러왔습니다: " + rec.meta.name);
+  }
+
+  function deleteRecord(id) {
+    state.records = state.records.filter(function (r) { return r.id !== id; });
+    saveRecords();
+    confirmDeleteId = null;
+    renderAll();
+    toast("삭제했습니다.");
+  }
+
+  function exportRecords() {
+    var data = JSON.stringify(state.records, null, 2);
+    var filename = "moneytrend_checklist_records_" + todayStr() + ".json";
+    if (window.claude && window.claude.downloads) {
+      window.claude.downloads.save({ filename: filename, data: data }).catch(function () {
+        fallbackDownload(filename, data);
+      });
+    } else {
+      fallbackDownload(filename, data);
+    }
+  }
+
+  function fallbackDownload(filename, data) {
+    var blob = new Blob([data], { type: "application/json" });
+    var url = URL.createObjectURL(blob);
+    var a = el("a", { href: url, download: filename });
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  function importRecordsFile(e) {
+    var file = e.target.files && e.target.files[0];
+    if (!file) return;
+    var reader = new FileReader();
+    reader.onload = function () {
+      try {
+        var arr = JSON.parse(reader.result);
+        if (!Array.isArray(arr)) throw new Error("배열 형식이 아닙니다.");
+        arr.forEach(function (r) { r.id = "r_" + Date.now() + "_" + Math.random().toString(36).slice(2, 7); });
+        state.records = arr.concat(state.records);
+        saveRecords();
+        renderAll();
+        toast(arr.length + "개 기록을 가져왔습니다.");
+      } catch (err) {
+        toast("가져오기 실패: JSON 형식을 확인해 주세요.");
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = "";
+  }
+
+  /* ---------------------------------------------------------- */
+  /* 10. 자동조회 탭                                               */
+  /* ---------------------------------------------------------- */
+
+  function renderAuto() {
+    var p = document.getElementById("panel-auto");
+    p.innerHTML = "";
+    p.appendChild(el("div", { class: "card", style: "padding:18px 22px;" }, [
+      el("h2", { class: "serif", style: "margin-top:0;" }, ["매크로 자동조회 데이터"]),
+      el("p", { class: "stage-desc" }, [
+        "이 페이지가 GitHub Pages 등 웹 서버로 배포되어 있다면, 같은 저장소의 ",
+        el("code", {}, ["data.json"]),
+        "을 열 때마다 자동으로 불러옵니다 (GitHub Actions가 매일 자동 갱신). 로컬 파일로 직접 열었을 때는 브라우저 보안 정책상 자동 조회가 안 되니, 아래에서 수동으로 불러오세요: 함께 받은 ",
+        el("code", {}, ["macro_data_fetch.py"]),
+        " (또는 ",
+        el("code", {}, ["run_macro_fetch.bat"]),
+        " 더블클릭)를 실행하면 원/달러 환율·VIX·KOSPI·미국 10년물 명목·실질금리·기대인플레이션·연준 기준금리를 공개 무료 API(Yahoo Finance, Frankfurter, 미국 재무부, 뉴욕 연준)에서 가져와 JSON으로 출력합니다. 하이일드 스프레드는 무료 키 없는 공개 API가 없어 자동조회에서 빠지며 직접 확인해 메모에 적어야 합니다. 점수는 자동으로 매겨지지 않으며, 항상 최종 판단은 직접 내려야 합니다."
+      ]),
+      el("div", { class: "row", style: "margin-top:12px;" }, [
+        el("button", {
+          class: "btn", onclick: function () { fetchSiteData(false); }
+        }, ["🔄 사이트 데이터 새로고침"])
+      ])
+    ]));
+
+    var fileInput = el("input", { type: "file", accept: "application/json,.json", style: "position:absolute;inset:0;opacity:0;cursor:pointer;" });
+    fileInput.addEventListener("change", function (e) {
+      var file = e.target.files && e.target.files[0];
+      if (!file) return;
+      var reader = new FileReader();
+      reader.onload = function () {
+        ta.value = reader.result;
+        applyMacroRefJson(reader.result, "파일");
+      };
+      reader.readAsText(file);
+      e.target.value = "";
+    });
+    var fileRow = el("div", { class: "row", style: "margin-top:14px;" }, [
+      el("label", { class: "btn primary", style: "position:relative;overflow:hidden;" }, ["📂 data.json 파일 선택", fileInput]),
+      el("span", { style: "color:var(--ink-faint);font-size:12px;" }, ["python macro_data_fetch.py --out data.json 로 만든 파일을 바로 선택하세요."])
+    ]);
+
+    var ta = el("textarea", { class: "note", style: "min-height:120px;margin-top:14px;", placeholder: "또는 macro_data_fetch.py 실행 결과(JSON)를 여기에 직접 붙여넣으세요." });
+    var applyRow = el("div", { class: "row", style: "margin-top:10px;" }, [
+      el("button", {
+        class: "btn", onclick: function () { applyMacroRefJson(ta.value, "붙여넣은 텍스트"); }
+      }, ["텍스트 적용하기"]),
+      el("button", {
+        class: "btn ghost", onclick: function () {
+          state.current.macroRef = null; saveDraft(); renderAll(); toast("초기화했습니다.");
+        }
+      }, ["지우기"])
+    ]);
+
+    var wrap = el("div", { class: "card", style: "padding:18px 22px;margin-top:14px;" }, [
+      el("div", { class: "section-title" }, ["1. 자동조회 결과 불러오기"]),
+      fileRow,
+      el("div", { style: "color:var(--ink-faint);font-size:12px;margin-top:12px;" }, ["파일 선택이 어려우면 아래에 붙여넣기도 가능합니다."]),
+      ta, applyRow
+    ]);
+    p.appendChild(wrap);
+
+    var ref = state.current.macroRef;
+    if (ref && ref.items) {
+      var refCard = el("div", { class: "card", style: "padding:18px 22px;margin-top:14px;" });
+      refCard.appendChild(el("div", { class: "section-title" }, ["2. 조회된 참고자료 (조회 시각: " + (ref.fetched_at || "-") + ")"]));
+      var grid = el("div", { class: "ref-grid" });
+      Object.keys(ref.items).forEach(function (k) {
+        var it = ref.items[k];
+        if (!it.ok || !it.data) {
+          grid.appendChild(el("div", { class: "ref-tile" }, [
+            el("div", { class: "lbl" }, [it.label]),
+            el("div", { style: "color:var(--negative);font-size:12px;margin-top:6px;" }, ["조회 실패"])
+          ]));
+          return;
+        }
+        var d = it.data;
+        var tile = el("div", { class: "ref-tile" }, [
+          el("div", { class: "lbl" }, [it.label]),
+          el("div", { class: "val" }, [String(d.latest)])
+        ]);
+        if (d.vs_20pts_ago) {
+          var chg = d.vs_20pts_ago.change;
+          tile.appendChild(el("div", { class: "delta " + (chg >= 0 ? "up" : "down") }, ["1개월전대비 " + fmtSigned(chg, 2)]));
+        }
+        tile.appendChild(el("div", { class: "date" }, [d.latest_date + " 기준"]));
+        grid.appendChild(tile);
+      });
+      refCard.appendChild(grid);
+      p.appendChild(refCard);
+    }
+
+    p.appendChild(el("div", { class: "card", style: "padding:18px 22px;margin-top:14px;" }, [
+      el("div", { class: "section-title" }, ["실행 방법"]),
+      el("p", { class: "stage-desc", style: "margin-top:0;" }, ["가장 쉬운 방법: 받은 파일 중 ", el("code", {}, ["run_macro_fetch.bat"]), " 를 더블클릭하면 조회 후 결과가 자동으로 클립보드에 복사됩니다. 위 텍스트 칸에 Ctrl+V로 붙여넣고 '텍스트 적용하기'만 누르면 끝입니다."]),
+      el("pre", { class: "mono", style: "background:var(--surface-2);padding:12px 14px;border-radius:8px;overflow-x:auto;font-size:12.5px;margin:0;" }, [
+        "방법 A) run_macro_fetch.bat 더블클릭 → 자동으로 클립보드 복사됨 → Ctrl+V\n방법 B) python macro_data_fetch.py --out data.json → 위 '파일 선택'으로 data.json 선택"
+      ])
+    ]));
+  }
+
+  /* ---------------------------------------------------------- */
+  /* 10.5 AI 초안 채점 (베타)                                       */
+  /* ---------------------------------------------------------- */
+
+  function allItemList() {
+    var out = [];
+    STAGE_ORDER.forEach(function (sk) {
+      STAGES[sk].items.forEach(function (it) {
+        out.push({ stage: sk, id: it.id, label: it.label });
+      });
+    });
+    return out;
+  }
+
+  function buildAiPrompt(targetName, context) {
+    var items = allItemList();
+    var itemLines = items.map(function (it, idx) {
+      return (idx + 1) + ". id=\"" + it.id + "\" (" + STAGES[it.stage].label + " · " + it.label + ")";
+    }).join("\n");
+    return "다음은 '거시경제·주식 추세 예측 체크리스트'라는 투자 판단 프레임워크의 채점 항목 " + items.length + "개입니다.\n" +
+      "평가 대상: " + targetName + "\n" +
+      (context ? ("참고 메모: " + context + "\n") : "") +
+      "\n각 항목마다 -2, -1, 0, 1, 2 중 하나의 정수 점수와 15~40자 내외의 한국어 근거를 정하세요.\n" +
+      "반드시 아래와 정확히 같은 개수(" + items.length + "개)의 JSON 배열만 출력하고, 다른 설명·머리말·코드블록 표시는 넣지 마세요:\n" +
+      "[{\"id\":\"항목id\",\"score\":정수,\"note\":\"근거\"}, ...]\n\n" +
+      "항목 목록:\n" + itemLines + "\n\n" +
+      "주의: 당신은 실시간 시세나 뉴스를 조회할 수 없습니다. 최신 수치를 확신할 수 없는 항목은 구조적·정성적 판단 위주로 채점하고, note 끝에 \"(추정, 최신 데이터 확인 필요)\"를 덧붙이세요.";
+  }
+
+  function requestAiDraft() {
+    var ai = state.ai;
+    if (!ai.apiKey || !ai.apiKey.trim()) { toast("Anthropic API 키를 먼저 입력해 주세요."); return; }
+    if (!ai.targetName || !ai.targetName.trim()) { toast("종목 또는 업종명을 입력해 주세요."); return; }
+    ai.loading = true; ai.error = ""; renderAll();
+
+    var prompt = buildAiPrompt(ai.targetName.trim(), ai.context.trim());
+
+    fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "x-api-key": ai.apiKey.trim(),
+        "anthropic-version": "2023-06-01",
+        "anthropic-dangerous-direct-browser-access": "true"
+      },
+      body: JSON.stringify({
+        model: AI_MODEL,
+        max_tokens: 4000,
+        messages: [{ role: "user", content: prompt }]
+      })
+    })
+      .then(function (res) {
+        if (!res.ok) {
+          return res.text().then(function (t) {
+            throw new Error("API 오류 (HTTP " + res.status + "): " + t.slice(0, 200));
+          });
+        }
+        return res.json();
+      })
+      .then(function (data) {
+        var text = (data.content || []).map(function (c) { return c.text || ""; }).join("");
+        var match = text.match(/\[[\s\S]*\]/);
+        if (!match) throw new Error("응답에서 JSON 배열을 찾지 못했습니다.");
+        var arr = JSON.parse(match[0]);
+        var itemMap = {};
+        allItemList().forEach(function (it) { itemMap[it.id] = it; });
+        var draft = arr.filter(function (r) { return r && itemMap[r.id]; }).map(function (r) {
+          var meta = itemMap[r.id];
+          var score = Math.round(Number(r.score));
+          if (isNaN(score)) score = 0;
+          score = Math.max(-2, Math.min(2, score));
+          return { id: r.id, stage: meta.stage, label: meta.label, score: score, note: String(r.note || "").slice(0, 300) };
+        });
+        if (!draft.length) throw new Error("파싱된 항목이 없습니다.");
+        ai.draft = draft;
+        ai.loading = false;
+        if (ai.rememberKey) { try { localStorage.setItem(STORAGE_AI_KEY, ai.apiKey.trim()); } catch (e) {} }
+        renderAll();
+        toast("AI 초안 " + draft.length + "개 항목을 받았습니다. 검토 후 적용하세요.");
+      })
+      .catch(function (err) {
+        ai.loading = false;
+        ai.error = err.message || String(err);
+        renderAll();
+        toast("AI 요청 실패: " + ai.error);
+      });
+  }
+
+  function applyAiDraftAll() {
+    var draft = state.ai.draft;
+    if (!draft) return;
+    draft.forEach(function (row) {
+      var cur = state.current[row.stage][row.id];
+      cur.score = row.score;
+      cur.note = "[AI 초안] " + row.note;
+    });
+    saveDraft();
+    renderAll();
+    toast("AI 초안 " + draft.length + "개 항목을 전체 적용했습니다.");
+  }
+
+  function applyAiDraftOne(rowId) {
+    var draft = state.ai.draft;
+    var row = draft && draft.find(function (r) { return r.id === rowId; });
+    if (!row) return;
+    var cur = state.current[row.stage][row.id];
+    cur.score = row.score;
+    cur.note = "[AI 초안] " + row.note;
+    saveDraft();
+    renderAll();
+    toast(row.label + " 항목을 적용했습니다.");
+  }
+
+  function renderAi() {
+    var p = document.getElementById("panel-ai");
+    p.innerHTML = "";
+    var ai = state.ai;
+
+    p.appendChild(el("div", { class: "card", style: "padding:18px 22px;" }, [
+      el("h2", { class: "serif", style: "margin-top:0;" }, ["✨ AI 초안 채점 (베타)"]),
+      el("p", { class: "stage-desc" }, [
+        "종목·업종명을 입력하면 본인의 Anthropic API 키로 브라우저에서 직접 Claude API를 호출해 30개 항목의 초안 점수와 근거를 받아옵니다. AI는 실시간 시세를 조회하지 않으므로 반드시 초안으로만 참고하고 최신 데이터로 직접 검증한 뒤 적용하세요."
+      ]),
+      el("div", { class: "callout" }, [
+        el("strong", {}, ["안내. "]),
+        "API 키는 이 브라우저의 로컬 저장소에만 저장되며 Anthropic 서버로만 전송됩니다(다른 사람과 링크를 공유해도 각자의 브라우저에만 남습니다). 키는 ",
+        el("a", { href: "https://console.anthropic.com", target: "_blank", rel: "noopener" }, ["console.anthropic.com"]),
+        "에서 발급하며, 호출마다 본인 계정으로 과금됩니다."
+      ])
+    ]));
+
+    var keyInput = el("input", { type: "password", placeholder: "sk-ant-..." });
+    keyInput.value = ai.apiKey;
+    keyInput.addEventListener("input", function (e) { ai.apiKey = e.target.value; });
+
+    var rememberCb = el("input", { type: "checkbox" });
+    rememberCb.checked = ai.rememberKey;
+    rememberCb.addEventListener("change", function (e) {
+      ai.rememberKey = e.target.checked;
+      if (!ai.rememberKey) { try { localStorage.removeItem(STORAGE_AI_KEY); } catch (err) {} }
+    });
+
+    var nameInput = el("input", { type: "text", placeholder: "예: 삼성전자, 2차전지 업종, 미국 반도체 섹터" });
+    nameInput.value = ai.targetName;
+    nameInput.addEventListener("input", function (e) { ai.targetName = e.target.value; });
+
+    var contextTa = el("textarea", { class: "note", style: "min-height:60px;", placeholder: "선택: 최근 실적, 이슈, 참고하고 싶은 맥락 등을 적어두면 더 구체적인 초안이 나옵니다." });
+    contextTa.value = ai.context;
+    contextTa.addEventListener("input", function (e) { ai.context = e.target.value; });
+
+    var formCard = el("div", { class: "card", style: "padding:18px 22px;margin-top:14px;" }, [
+      el("div", { class: "section-title" }, ["1. API 키 · 대상 입력"]),
+      el("div", { class: "field", style: "margin-bottom:12px;" }, [el("label", {}, ["Anthropic API 키"]), keyInput]),
+      el("label", { style: "display:flex;gap:6px;align-items:center;font-size:12.5px;color:var(--ink-dim);margin-bottom:14px;" }, [rememberCb, "이 브라우저에 키 저장 (체크 해제 시 세션 종료와 함께 사라짐)"]),
+      el("div", { class: "field", style: "margin-bottom:12px;" }, [el("label", {}, ["종목 / 업종명"]), nameInput]),
+      el("div", { class: "field", style: "margin-bottom:14px;" }, [el("label", {}, ["참고 메모 (선택)"]), contextTa]),
+      el("button", {
+        class: "btn primary", disabled: ai.loading ? true : undefined,
+        onclick: requestAiDraft
+      }, ai.loading ? [el("span", { class: "spinner" }), "요청 중..."] : ["✨ AI 초안 요청"])
+    ]);
+    p.appendChild(formCard);
+
+    if (ai.error) {
+      p.appendChild(el("div", { class: "callout warn", style: "margin-top:14px;" }, [el("strong", {}, ["오류. "]), ai.error]));
+    }
+
+    if (ai.draft && ai.draft.length) {
+      var draftCard = el("div", { class: "card", style: "padding:18px 22px;margin-top:14px;" });
+      draftCard.appendChild(el("div", { class: "row", style: "justify-content:space-between;margin-bottom:10px;" }, [
+        el("div", { class: "section-title", style: "margin:0;" }, ["2. 초안 검토 (" + ai.targetName + ")"]),
+        el("button", { class: "btn primary sm", onclick: applyAiDraftAll }, ["전체 적용"])
+      ]));
+      var wrap = el("div", { class: "table-wrap" });
+      var t = el("table", { class: "ai-draft-table" });
+      t.appendChild(el("thead", {}, [el("tr", {}, [el("th", {}, ["항목"]), el("th", {}, ["점수"]), el("th", {}, ["근거"]), el("th", {}, [""])])]));
+      var tb = el("tbody");
+      ai.draft.forEach(function (row) {
+        var scoreSel = el("select", { class: "score-select" });
+        [-2, -1, 0, 1, 2].forEach(function (v) {
+          var o = el("option", { value: v }, [fmtSigned(v, 0)]);
+          if (row.score === v) o.selected = true;
+          scoreSel.appendChild(o);
+        });
+        scoreSel.addEventListener("change", function (e) { row.score = parseInt(e.target.value, 10); });
+
+        var noteTa = el("textarea", { class: "note-mini" });
+        noteTa.value = row.note;
+        noteTa.addEventListener("input", function (e) { row.note = e.target.value; });
+
+        tb.appendChild(el("tr", {}, [
+          el("td", { style: "font-weight:600;white-space:nowrap;" }, [STAGES[row.stage].label.replace(/^0./, "") , el("br"), row.label]),
+          el("td", { class: "score-cell" }, [scoreSel]),
+          el("td", {}, [noteTa]),
+          el("td", {}, [el("button", { class: "btn sm", onclick: function () { applyAiDraftOne(row.id); } }, ["적용"])])
+        ]));
+      });
+      t.appendChild(tb);
+      wrap.appendChild(t);
+      draftCard.appendChild(wrap);
+      p.appendChild(draftCard);
+    }
+  }
+
+  /* ---------------------------------------------------------- */
+  /* 11. 전체 렌더                                                */
+  /* ---------------------------------------------------------- */
+
+  function renderAll() {
+    renderTabs();
+    renderSummaryBar();
+    renderGuide();
+    renderStage("macro");
+    renderStage("industry");
+    renderStage("stock");
+    renderStage("market");
+    renderResult();
+    renderRecords();
+    renderAuto();
+    renderAi();
+  }
+
+  renderAll();
+  fetchSiteData(true);
+})();
+</script>
+</body>
+</html>
