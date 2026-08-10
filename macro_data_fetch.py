@@ -3,9 +3,10 @@
 거시경제·주식 추세 예측 체크리스트 - 매크로 데이터 자동조회 스크립트
 
 체크리스트 V3.1의 '01 매크로' 단계에서 참고할 수 있는 공개 지표를
-API 키 없이 무료 공개 소스(Yahoo Finance, Frankfurter, 미국 재무부, 뉴욕 연준)에서
-가져와 JSON으로 출력합니다. 하이일드 스프레드(OAS)는 무료 키 없는 공개 API가 없어
-자동조회 대상에서 제외되며 항상 수동으로 확인해야 합니다.
+키 없이 무료 공개 소스(Yahoo Finance, Frankfurter, 미국 재무부, 뉴욕 연준)에서
+가져와 JSON으로 출력합니다. 하이일드 스프레드(OAS)만 환경변수 FRED_API_KEY가
+설정된 경우에 한해 FRED 공식 API로 조회합니다 (무료, https://fredaccount.stlouisfed.org/apikeys).
+키가 없으면 이 항목은 "조회 실패"로 표시되고 수동 확인이 필요합니다.
 
 이 스크립트는 점수를 대신 매기지 않습니다. 원 체크리스트의 원칙대로
 "근거를 함께 적는다"를 돕기 위해 원자료(수준 + 5/20/60거래일 변화)만
@@ -22,6 +23,7 @@ API 키 없이 무료 공개 소스(Yahoo Finance, Frankfurter, 미국 재무부
 
 import argparse
 import json
+import os
 import sys
 import time
 import urllib.parse
@@ -120,6 +122,28 @@ def fetch_ny_fed_effr():
     return series
 
 
+def fetch_fred_api_series(series_id, api_key):
+    """FRED 공식 API(api.stlouisfed.org)에서 시계열을 가져온다. 무료 키가 필요하다
+    (https://fredaccount.stlouisfed.org/apikeys, 신용카드 불필요). fred.stlouisfed.org의
+    비공식 CSV 엔드포인트는 이 환경에서 접속이 막혀 있어 공식 API로 대체한다."""
+    url = (
+        "https://api.stlouisfed.org/fred/series/observations"
+        f"?series_id={series_id}&api_key={api_key}&file_type=json"
+        "&sort_order=asc&observation_start=" + str(datetime.now().year - 1) + "-01-01"
+    )
+    raw = _get(url)
+    data = json.loads(raw)
+    series = []
+    for obs in data.get("observations", []):
+        if obs.get("value") in (".", "", None):
+            continue
+        try:
+            series.append((obs["date"], float(obs["value"])))
+        except ValueError:
+            continue
+    return series
+
+
 def fetch_usdkrw_frankfurter():
     """Frankfurter(ECB 데이터 기반)에서 USD/KRW 환율 시계열(최근 6개월)을 가져온다."""
     url = "https://api.frankfurter.dev/v1/2026-02-01..?base=USD&symbols=KRW"
@@ -212,12 +236,32 @@ def build_result():
     be["label"] = "10년 기대인플레이션(%, 명목-실질 근사치)"
     result["items"]["breakeven_inflation"] = be
 
-    result["items"]["hy_oas_spread"] = {
-        "ok": False,
-        "error": "이 항목은 무료 키 없는 공개 API가 없어 자동조회를 지원하지 않습니다. "
-        "FRED(BAMLH0A0HYM2) 웹사이트나 증권사 HTS/앱에서 직접 확인해 메모에 적어 주세요.",
-        "label": "하이일드 스프레드(OAS, %)",
-    }
+    fred_key = os.environ.get("FRED_API_KEY", "").strip()
+    if fred_key:
+        print("  - 하이일드 스프레드(OAS, %) 조회 중...", file=sys.stderr)
+        res = safe_fetch(lambda: pick_change(fetch_fred_api_series("BAMLH0A0HYM2", fred_key)))
+        res["label"] = "하이일드 스프레드(OAS, %)"
+        result["items"]["hy_oas_spread"] = res
+
+        # 문서의 무효화 조건 예시(75bp=0.75%p 이상 확대)를 20거래일 변화에 참고로 대입
+        hy = result["items"]["hy_oas_spread"]
+        if hy.get("ok") and hy["data"] and "vs_20pts_ago" in hy["data"]:
+            chg = hy["data"]["vs_20pts_ago"]["change"]
+            result["hy_spread_reference"] = {
+                "note": "문서의 무효화 조건 예시(HY 스프레드 75bp=0.75%p 이상 확대)를 최근 20거래일 변화에 참고로 대입한 값입니다. "
+                "베토 트리거 판정(급확대 여부)은 사용자가 직접 내립니다.",
+                "change_20d_pct_points": round(chg, 3),
+                "exceeds_75bp_reference": abs(chg) >= 0.75,
+            }
+    else:
+        result["items"]["hy_oas_spread"] = {
+            "ok": False,
+            "error": "FRED_API_KEY가 설정되지 않아 조회를 건너뛰었습니다. "
+            "https://fredaccount.stlouisfed.org/apikeys 에서 무료 키를 발급받아 "
+            "GitHub 저장소 Secret으로 FRED_API_KEY를 등록하면 자동 조회됩니다. "
+            "그 전까지는 FRED(BAMLH0A0HYM2) 웹사이트나 증권사 HTS/앱에서 직접 확인해 메모에 적어 주세요.",
+            "label": "하이일드 스프레드(OAS, %)",
+        }
 
     return result
 

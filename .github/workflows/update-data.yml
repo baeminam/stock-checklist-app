@@ -21,6 +21,8 @@ jobs:
           python-version: "3.12"
 
       - name: Fetch macro data
+        env:
+          FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
         run: python macro_data_fetch.py --out data.json
 
       - name: Commit if changed

@@ -10,7 +10,18 @@
 1. 이 저장소를 GitHub에 올린 뒤 **Settings → Pages → Source: Deploy from a branch → Branch: main / (root)** 를 선택합니다.
 2. 몇 분 후 `https://<사용자명>.github.io/<저장소명>/` 주소로 접속하면 됩니다.
 3. `.github/workflows/update-data.yml`이 매일 자동으로 `macro_data_fetch.py`를 실행해 `data.json`을 갱신하고 커밋합니다. 페이지는 열릴 때마다 이 `data.json`을 자동으로 불러옵니다.
-4. 별도 서버나 API 키 설정 없이 그대로 동작합니다.
+4. 별도 서버나 API 키 설정 없이 그대로 동작합니다 (하이일드 스프레드 제외, 아래 참고).
+
+### 하이일드 스프레드까지 자동 조회하려면 (선택)
+
+하이일드 스프레드(OAS)만 무료 키 없는 공개 API가 없어 기본적으로는 "조회 실패"로 표시됩니다. FRED(세인트루이스 연준)의 **무료** API 키를 등록하면 이것도 자동으로 채워집니다.
+
+1. https://fredaccount.stlouisfed.org/apikeys 에서 무료 계정 가입 후 API 키 발급 (신용카드 불필요)
+2. 저장소 **Settings → Secrets and variables → Actions → New repository secret**
+3. Name: `FRED_API_KEY`, Value: 발급받은 키 → Add secret
+4. **Actions → Update macro data → Run workflow**로 한 번 수동 실행하면 바로 반영됩니다 (이후로는 매일 자동 갱신에 포함됨)
+
+이 키는 GitHub Actions(서버) 안에서만 쓰이고 브라우저로는 전송되지 않으므로 Secret으로 등록해도 안전합니다.
 
 ## 로컬에서 사용하기
 
