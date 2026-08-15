@@ -574,6 +574,42 @@
     ]
   };
 
+  // Twelve Data 심볼 검색은 한글 종목명을 지원하지 않는다(빈 결과 반환). 자주 검색될 만한
+  // 주요 KOSPI·KOSDAQ 종목을 한글 이름으로 바로 찾을 수 있도록 직접 정리해 둔 사전이다.
+  // symbol_search와 같은 응답 형태({symbol, instrument_name, exchange, country, currency})로 맞춘다.
+  var KR_STOCK_LIST = [
+    ["005930", "삼성전자"], ["005935", "삼성전자우"], ["000660", "SK하이닉스"], ["373220", "LG에너지솔루션"],
+    ["207940", "삼성바이오로직스"], ["005380", "현대차"], ["000270", "기아"], ["068270", "셀트리온"],
+    ["005490", "POSCO홀딩스"], ["035420", "NAVER"], ["035720", "카카오"], ["051910", "LG화학"],
+    ["006400", "삼성SDI"], ["105560", "KB금융"], ["055550", "신한지주"], ["086790", "하나금융지주"],
+    ["028260", "삼성물산"], ["012330", "현대모비스"], ["066570", "LG전자"], ["096770", "SK이노베이션"],
+    ["316140", "우리금융지주"], ["003670", "POSCO퓨처엠"], ["009830", "한화솔루션"], ["003550", "LG"],
+    ["034730", "SK"], ["329180", "HD현대중공업"], ["032830", "삼성생명"], ["000810", "삼성화재"],
+    ["015760", "한국전력"], ["033780", "KT&G"], ["034020", "두산에너빌리티"], ["011200", "HMM"],
+    ["003490", "대한항공"], ["017670", "SK텔레콤"], ["030200", "KT"], ["051900", "LG생활건강"],
+    ["090430", "아모레퍼시픽"], ["251270", "넷마블"], ["259960", "크래프톤"], ["036570", "엔씨소프트"],
+    ["097950", "CJ제일제당"], ["011170", "롯데케미칼"], ["010950", "S-Oil"], ["241560", "두산밥캣"],
+    ["042700", "한미반도체"], ["009540", "HD한국조선해양"], ["028050", "삼성엔지니어링"], ["000720", "현대건설"],
+    ["006360", "GS건설"], ["000150", "두산"], ["006800", "미래에셋증권"], ["005940", "NH투자증권"],
+    ["138040", "메리츠금융지주"], ["005830", "DB손해보험"], ["086280", "현대글로비스"], ["010120", "LS ELECTRIC"],
+    ["018880", "한온시스템"], ["016360", "삼성증권"], ["024110", "기업은행"], ["138930", "BNK금융지주"],
+    ["139130", "DGB금융지주"], ["069960", "현대백화점"], ["004170", "신세계"], ["139480", "이마트"],
+    ["000120", "CJ대한통운"], ["180640", "한진칼"], ["069620", "대웅제약"], ["000100", "유한양행"],
+    ["185750", "종근당"], ["128940", "한미약품"], ["006280", "녹십자"], ["096530", "씨젠"],
+    ["293490", "카카오게임즈"], ["086520", "에코프로"], ["247540", "에코프로비엠"], ["196170", "알테오젠"],
+    ["028300", "HLB"], ["058470", "리노공업"], ["263750", "펄어비스"], ["253450", "스튜디오드래곤"],
+    ["035900", "JYP Ent."], ["041510", "에스엠"], ["122870", "와이지엔터테인먼트"], ["068760", "셀트리온제약"]
+  ].map(function (row) {
+    return { symbol: row[0], instrument_name: row[1], exchange: "KRX", country: "South Korea", currency: "KRW" };
+  });
+
+  function hasKorean(s) { return /[가-힣]/.test(s); }
+
+  function searchKrDictionary(query) {
+    var q = query.trim();
+    return KR_STOCK_LIST.filter(function (item) { return item.instrument_name.indexOf(q) !== -1; }).slice(0, 12);
+  }
+
   /* ---------------------------------------------------------- */
   /* 2. 상태                                                      */
   /* ---------------------------------------------------------- */
@@ -1891,6 +1927,14 @@
   }
 
   function runSymbolSearch(query) {
+    if (hasKorean(query)) {
+      state.ta.searching = false;
+      var matches = searchKrDictionary(query);
+      state.ta.searchResults = matches;
+      state.ta.searchError = matches.length ? "" : "주요 종목 사전에 없는 이름입니다. 영문 종목명이나 티커로도 검색해 보세요 (예: samsung, 005930).";
+      renderAll();
+      return;
+    }
     fetch("https://api.twelvedata.com/symbol_search?symbol=" + encodeURIComponent(query))
       .then(function (res) { return res.json(); })
       .then(function (data) {
@@ -2141,11 +2185,12 @@
     ]));
 
     // 검색
-    var searchInput = el("input", { type: "text", placeholder: "예: samsung, apple, 005930, AAPL", value: ta.query });
+    var searchInput = el("input", { type: "text", placeholder: "예: 삼성전자, samsung, apple, 005930, AAPL", value: ta.query });
     searchInput.addEventListener("input", function (e) { scheduleSymbolSearch(e.target.value); });
     var searchCard = el("div", { class: "card", style: "padding:18px 22px;margin-top:14px;" }, [
       el("div", { class: "section-title" }, ["1. 종목 검색"]),
-      el("div", { class: "field" }, [el("label", {}, ["종목명 또는 티커 (영문 검색이 가장 잘 됩니다)"]), searchInput])
+      el("div", { class: "field" }, [el("label", {}, ["종목명 또는 티커"]), searchInput]),
+      el("div", { style: "color:var(--ink-faint);font-size:11.5px;margin-top:6px;" }, ["한글은 주요 KOSPI·KOSDAQ 종목(약 80개) 사전 검색, 그 외에는 영문 종목명·티커로 전세계 종목을 검색합니다."])
     ]);
     if (ta.searching) {
       searchCard.appendChild(el("div", { style: "color:var(--ink-faint);font-size:12.5px;margin-top:8px;" }, [el("span", { class: "spinner" }), "검색 중..."]));
