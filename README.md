@@ -5,7 +5,8 @@
 
 이 문서와 앱은 교육용 참고 자료이며 특정 종목의 매수·매도 권유가 아닙니다. 최종 판단과 책임은 사용자 본인에게 있습니다.
 
-이 프로젝트가 어떤 과정으로 만들어졌는지는 [PROJECT_LOG.md](PROJECT_LOG.md)에 정리해 두었습니다.
+이 프로젝트가 어떤 과정으로 만들어졌는지는 [PROJECT_LOG.md](PROJECT_LOG.md)에,
+실제 대화가 어떻게 진행됐는지는 [CONVERSATION_LOG.md](CONVERSATION_LOG.md)에 정리해 두었습니다.
 
 ## GitHub Pages로 배포하기
 
