@@ -1968,10 +1968,45 @@
     renderAll();
   }
 
+  function isKrStock(item) {
+    return !!item && item.exchange === "KRX";
+  }
+
   function requestChart() {
     var ta = state.ta;
-    var key = (ta.tdKey || "").trim();
     if (!ta.selected) { toast("먼저 종목을 검색해서 선택해 주세요."); return; }
+    if (isKrStock(ta.selected)) { requestKrChart(); return; }
+    requestTdChart();
+  }
+
+  function requestKrChart() {
+    var ta = state.ta;
+    ta.loading = true; ta.error = ""; ta.aiVerdict = null; ta.aiError = ""; renderAll();
+
+    fetch("./kr_stocks/" + encodeURIComponent(ta.selected.symbol) + ".json", { cache: "no-store" })
+      .then(function (res) {
+        if (!res.ok) throw new Error("이 종목은 아직 무료 데이터가 준비되지 않았습니다 (HTTP " + res.status + ").");
+        return res.json();
+      })
+      .then(function (data) {
+        var series = data.series || [];
+        if (!series.length) throw new Error("데이터가 없습니다.");
+        ta.series = series;
+        ta.indicators = computeIndicators(series);
+        ta.loading = false;
+        renderAll();
+        toast(ta.selected.instrument_name + " 차트를 불러왔습니다 (무료 데이터, " + (data.fetched_at || "").slice(0, 10) + " 기준 갱신).");
+      })
+      .catch(function (err) {
+        ta.loading = false;
+        ta.error = err.message || String(err);
+        renderAll();
+      });
+  }
+
+  function requestTdChart() {
+    var ta = state.ta;
+    var key = (ta.tdKey || "").trim();
     if (!key) { toast("Twelve Data API 키를 먼저 입력해 주세요."); return; }
     ta.loading = true; ta.error = ""; ta.aiVerdict = null; ta.aiError = ""; renderAll();
 
@@ -2249,25 +2284,36 @@
       else { try { localStorage.setItem(STORAGE_TD_KEY, ta.tdKey || ""); } catch (err) {} }
     });
 
-    var selectedCard = el("div", { class: "card", style: "padding:18px 22px;margin-top:14px;" }, [
+    var isKr = isKrStock(ta.selected);
+    var selectedCardChildren = [
       el("div", { class: "section-title" }, ["2. 선택한 종목"]),
       el("div", { class: "row", style: "margin-bottom:12px;" }, [
         el("span", { class: "pill neu" }, [ta.selected.symbol]),
         el("strong", {}, [ta.selected.instrument_name]),
         el("span", { style: "color:var(--ink-faint);font-size:12.5px;" }, [ta.selected.exchange + (ta.selected.currency ? " · " + ta.selected.currency : "")])
-      ]),
-      el("div", { class: "callout", style: "margin-bottom:12px;" }, [
-        "차트·지표 조회에는 Twelve Data의 무료 API 키가 필요합니다(신용카드 불필요, 분당 호출 제한 있음). ",
-        el("a", { href: "https://twelvedata.com/pricing", target: "_blank", rel: "noopener" }, ["twelvedata.com/pricing"]),
-        "에서 발급하세요."
-      ]),
-      el("div", { class: "field", style: "margin-bottom:8px;" }, [el("label", {}, ["Twelve Data API 키"]), tdKeyInput]),
-      el("label", { style: "display:flex;gap:6px;align-items:center;font-size:12.5px;color:var(--ink-dim);margin-bottom:14px;" }, [tdRememberCb, "이 브라우저에 키 저장"]),
-      el("button", {
-        class: "btn primary", disabled: ta.loading ? true : undefined,
-        onclick: requestChart
-      }, ta.loading ? [el("span", { class: "spinner" }), "불러오는 중..."] : ["📊 차트·지표 불러오기"])
-    ]);
+      ])
+    ];
+    if (isKr) {
+      selectedCardChildren.push(el("div", { class: "callout", style: "margin-bottom:12px;" }, [
+        "한국 종목은 매일 자동 갱신되는 무료 데이터를 사용합니다. 별도 API 키가 필요 없습니다."
+      ]));
+    } else {
+      selectedCardChildren.push(
+        el("div", { class: "callout", style: "margin-bottom:12px;" }, [
+          "차트·지표 조회에는 Twelve Data의 무료 API 키가 필요합니다(신용카드 불필요, 분당 호출 제한 있음). ",
+          el("a", { href: "https://twelvedata.com/pricing", target: "_blank", rel: "noopener" }, ["twelvedata.com/pricing"]),
+          "에서 발급하세요."
+        ]),
+        el("div", { class: "field", style: "margin-bottom:8px;" }, [el("label", {}, ["Twelve Data API 키"]), tdKeyInput]),
+        el("label", { style: "display:flex;gap:6px;align-items:center;font-size:12.5px;color:var(--ink-dim);margin-bottom:14px;" }, [tdRememberCb, "이 브라우저에 키 저장"])
+      );
+    }
+    selectedCardChildren.push(el("button", {
+      class: "btn primary", disabled: ta.loading ? true : undefined,
+      onclick: requestChart
+    }, ta.loading ? [el("span", { class: "spinner" }), "불러오는 중..."] : ["📊 차트·지표 불러오기"]));
+
+    var selectedCard = el("div", { class: "card", style: "padding:18px 22px;margin-top:14px;" }, selectedCardChildren);
     p.appendChild(selectedCard);
 
     if (ta.error) {

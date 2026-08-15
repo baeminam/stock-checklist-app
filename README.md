@@ -55,8 +55,9 @@
 
 종목명이나 티커로 검색해 캔들차트·이동평균(5/20/60/120일)·RSI·MACD·볼린저밴드·거래량 등 지표를 확인하고, AI로 매수·보유·매도 의견을 받을 수 있습니다.
 
-- 종목 검색은 [Twelve Data](https://twelvedata.com)의 심볼 검색 API를 사용하며 키 없이 바로 동작합니다.
-- 차트·지표(시계열 데이터) 조회에는 Twelve Data의 무료 API 키가 필요합니다 ([twelvedata.com/pricing](https://twelvedata.com/pricing), 신용카드 불필요).
+- 종목 검색은 [Twelve Data](https://twelvedata.com)의 심볼 검색 API를 사용하며 키 없이 바로 동작합니다. 한글 검색은 Twelve Data가 지원하지 않아, 주요 KOSPI·KOSDAQ 종목(`index.html`의 `KR_STOCK_LIST`) 약 80개는 자체 사전으로 즉시 검색됩니다.
+- **한국(KRX) 종목의 차트·지표는 완전 무료이며 API 키가 필요 없습니다.** `kr_stocks_fetch.py`가 네이버 금융의 공개 시세를 GitHub Actions에서 매일 미리 받아 `kr_stocks/<종목코드>.json`으로 저장해 두고, 페이지는 이 파일을 같은 저장소에서 그대로 읽습니다. (Twelve Data 무료 플랜은 KRX 시계열 데이터를 지원하지 않아 대안으로 마련했습니다.)
+- 그 외 해외 종목의 차트·지표(시계열 데이터) 조회에는 Twelve Data의 무료 API 키가 필요합니다 ([twelvedata.com/pricing](https://twelvedata.com/pricing), 신용카드 불필요).
 - AI 매수·보유·매도 의견은 "AI 초안" 탭에서 설정한 Gemini/Claude 키를 그대로 재사용합니다. 계산된 지표만 근거로 답하며 실시간 뉴스·재무제표는 반영하지 않습니다.
 - 차트는 최근 90거래일만 표시하지만, 지표 계산에는 최대 260거래일(약 1년) 데이터를 사용합니다.
 
@@ -68,4 +69,6 @@
 | `macro_data_fetch.py` | 매크로 참고 데이터를 공개 API에서 가져오는 스크립트 |
 | `run_macro_fetch.bat` | 위 스크립트를 실행하고 결과를 클립보드에 복사하는 Windows 배치 파일 |
 | `data.json` | GitHub Actions가 매일 갱신하는 매크로 데이터 (자동 생성) |
-| `.github/workflows/update-data.yml` | 매일 `data.json`을 자동 갱신하는 GitHub Actions 워크플로 |
+| `kr_stocks_fetch.py` | 주요 KOSPI·KOSDAQ 종목의 일별 시세를 네이버 금융에서 가져오는 스크립트 |
+| `kr_stocks/*.json` | GitHub Actions가 매일 갱신하는 한국 종목별 시세 (자동 생성) |
+| `.github/workflows/update-data.yml` | 매일 `data.json`·`kr_stocks/`를 자동 갱신하는 GitHub Actions 워크플로 |
