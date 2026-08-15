@@ -1910,20 +1910,23 @@
   /* 10.7 기술적분석 — 데이터 조회                                  */
   /* ---------------------------------------------------------- */
 
-  var taSearchTimer = null;
-
-  function scheduleSymbolSearch(query) {
+  function setTaQuery(query) {
+    // 입력할 때마다 화면을 다시 그리면 입력창 DOM이 새로 만들어져 조합 중인 한글 입력(IME)이
+    // 끊긴다. 그래서 타이핑 중에는 상태만 갱신하고 화면을 다시 그리지 않으며, 검색은
+    // 입력을 다 마친 뒤 Enter를 누르거나 검색 버튼을 눌렀을 때만 실행한다.
     state.ta.query = query;
-    if (taSearchTimer) clearTimeout(taSearchTimer);
-    if (!query || query.trim().length < 1) {
+  }
+
+  function triggerSymbolSearch() {
+    var query = (state.ta.query || "").trim();
+    if (!query) {
       state.ta.searchResults = [];
       state.ta.searching = false;
+      state.ta.searchError = "";
       renderTa();
       return;
     }
-    state.ta.searching = true;
-    renderTa();
-    taSearchTimer = setTimeout(function () { runSymbolSearch(query.trim()); }, 450);
+    runSymbolSearch(query);
   }
 
   function runSymbolSearch(query) {
@@ -1935,6 +1938,8 @@
       renderAll();
       return;
     }
+    state.ta.searching = true;
+    renderTa();
     fetch("https://api.twelvedata.com/symbol_search?symbol=" + encodeURIComponent(query))
       .then(function (res) { return res.json(); })
       .then(function (data) {
@@ -2186,10 +2191,20 @@
 
     // 검색
     var searchInput = el("input", { type: "text", placeholder: "예: 삼성전자, samsung, apple, 005930, AAPL", value: ta.query });
-    searchInput.addEventListener("input", function (e) { scheduleSymbolSearch(e.target.value); });
+    searchInput.addEventListener("input", function (e) { setTaQuery(e.target.value); });
+    searchInput.addEventListener("keydown", function (e) {
+      if (e.key === "Enter") { e.preventDefault(); triggerSymbolSearch(); }
+    });
+    var searchBtn = el("button", { class: "btn primary", type: "button", onclick: triggerSymbolSearch }, ["검색"]);
     var searchCard = el("div", { class: "card", style: "padding:18px 22px;margin-top:14px;" }, [
       el("div", { class: "section-title" }, ["1. 종목 검색"]),
-      el("div", { class: "field" }, [el("label", {}, ["종목명 또는 티커"]), searchInput]),
+      el("div", { class: "field" }, [
+        el("label", {}, ["종목명 또는 티커 (입력 후 Enter)"]),
+        el("div", { class: "row", style: "flex-wrap:nowrap;gap:8px;" }, [
+          (function () { searchInput.style.flex = "1"; searchInput.style.width = "auto"; return searchInput; })(),
+          searchBtn
+        ])
+      ]),
       el("div", { style: "color:var(--ink-faint);font-size:11.5px;margin-top:6px;" }, ["한글은 주요 KOSPI·KOSDAQ 종목(약 80개) 사전 검색, 그 외에는 영문 종목명·티커로 전세계 종목을 검색합니다."])
     ]);
     if (ta.searching) {
