@@ -305,6 +305,24 @@
   .ref-tile .delta.down { color: var(--negative); }
   .ref-tile .date { font-size: 10.5px; color: var(--ink-faint); margin-top: 4px; }
 
+  .symbol-results { display: flex; flex-direction: column; gap: 4px; margin-top: 12px; max-height: 320px; overflow-y: auto; }
+  .symbol-result-item {
+    display: flex; align-items: center; gap: 10px; text-align: left;
+    background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px;
+    padding: 9px 12px; cursor: pointer; font-size: 13px; color: var(--ink);
+  }
+  .symbol-result-item:hover { border-color: var(--accent); background: var(--accent-soft); }
+  .symbol-result-item .sym { font-family: ui-monospace, monospace; font-weight: 700; flex-shrink: 0; min-width: 64px; }
+  .symbol-result-item .nm { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .symbol-result-item .ex { color: var(--ink-faint); font-size: 11.5px; flex-shrink: 0; }
+
+  .chart-canvas-wrap { width: 100%; height: 320px; }
+  .chart-canvas-wrap canvas { width: 100%; height: 100%; display: block; }
+
+  .verdict-box { border-top: 1px solid var(--border); padding-top: 14px; }
+  .verdict-list { margin: 4px 0 0; padding-left: 18px; color: var(--ink-dim); font-size: 13px; }
+  .verdict-list li { margin-bottom: 4px; }
+
   .empty { color: var(--ink-faint); font-size: 13px; padding: 24px; text-align: center; }
 
   .toast-wrap { position: fixed; bottom: 18px; right: 18px; z-index: 100; display: flex; flex-direction: column; gap: 8px; }
@@ -347,6 +365,7 @@
   <div class="panel" id="panel-records"></div>
   <div class="panel" id="panel-auto"></div>
   <div class="panel" id="panel-ai"></div>
+  <div class="panel" id="panel-ta"></div>
 
   <div class="disclaimer">
     MoneyTrend 교육용 체크리스트를 바탕으로 만든 개인용 계산 도구입니다. 점수는 정밀한 예측 장치가 아니라 판단 일관성을 높이는 도구이며, 최종 투자 판단과 책임은 본인에게 있습니다. 데이터는 이 브라우저에만 저장되며 서버로 전송되지 않습니다.
@@ -491,6 +510,8 @@
   var STORAGE_AI_KEY_PREFIX = "moneytrend_ai_key_";
   var STORAGE_AI_MODEL_PREFIX = "moneytrend_ai_model_";
   var STORAGE_AI_PROVIDER = "moneytrend_ai_provider_v1";
+  var STORAGE_TD_KEY = "moneytrend_td_key_v1";
+  var CHART_WINDOW = 90;
 
   var PROVIDERS = {
     gemini: {
@@ -541,6 +562,18 @@
   };
   var PROVIDER_ORDER = ["gemini", "anthropic"];
 
+  var SECTOR_GROUPS = {
+    "S&P500 (GICS 11개 섹터)": [
+      "정보기술", "헬스케어", "금융", "임의소비재", "커뮤니케이션서비스",
+      "산업재", "필수소비재", "에너지", "유틸리티", "부동산", "소재"
+    ],
+    "KOSPI (주요 업종·테마)": [
+      "반도체", "자동차·부품", "2차전지·에너지", "바이오·헬스케어", "금융(은행·보험·증권)",
+      "화학·소재", "철강", "조선·기계", "건설", "IT·인터넷·게임",
+      "통신", "유통·소비재", "미디어·엔터테인먼트", "항공·운송", "방위산업"
+    ]
+  };
+
   /* ---------------------------------------------------------- */
   /* 2. 상태                                                      */
   /* ---------------------------------------------------------- */
@@ -572,6 +605,9 @@
   function loadAiModel(provider) {
     try { return localStorage.getItem(STORAGE_AI_MODEL_PREFIX + provider) || PROVIDERS[provider].defaultModel; } catch (e) { return PROVIDERS[provider].defaultModel; }
   }
+  function loadTdKey() {
+    try { return localStorage.getItem(STORAGE_TD_KEY) || ""; } catch (e) { return ""; }
+  }
 
   var state = {
     current: loadDraft() || freshCurrent(),
@@ -587,6 +623,22 @@
       loading: false,
       error: "",
       draft: null
+    },
+    ta: {
+      query: "",
+      searchResults: [],
+      searching: false,
+      searchError: "",
+      selected: null,
+      tdKey: loadTdKey(),
+      rememberTdKey: true,
+      loading: false,
+      error: "",
+      series: null,
+      indicators: null,
+      aiLoading: false,
+      aiError: "",
+      aiVerdict: null
     }
   };
 
@@ -756,7 +808,8 @@
     { id: "result", n: "07", label: "총점·판단" },
     { id: "records", n: "＋", label: "저장 기록" },
     { id: "auto", n: "⇩", label: "자동조회" },
-    { id: "ai", n: "✨", label: "AI 초안" }
+    { id: "ai", n: "✨", label: "AI 초안" },
+    { id: "ta", n: "📈", label: "기술적분석" }
   ];
 
   function renderTabs() {
@@ -1597,9 +1650,27 @@
       }
     });
 
-    var nameInput = el("input", { type: "text", placeholder: "예: 삼성전자, 2차전지 업종, 미국 반도체 섹터" });
+    var nameInput = el("input", { type: "text", placeholder: "예: 삼성전자, 2차전지 업종, 미국 반도체 섹터", style: "flex:2;width:auto;min-width:0;" });
     nameInput.value = ai.targetName;
     nameInput.addEventListener("input", function (e) { ai.targetName = e.target.value; });
+
+    var sectorSel = el("select", { style: "flex:1;min-width:150px;width:auto;" });
+    sectorSel.appendChild(el("option", { value: "" }, ["지수·섹터에서 고르기"]));
+    Object.keys(SECTOR_GROUPS).forEach(function (groupLabel) {
+      var grp = el("optgroup", { label: groupLabel });
+      SECTOR_GROUPS[groupLabel].forEach(function (sector) {
+        grp.appendChild(el("option", { value: groupLabel + "|" + sector }, [sector]));
+      });
+      sectorSel.appendChild(grp);
+    });
+    sectorSel.addEventListener("change", function (e) {
+      if (!e.target.value) return;
+      var parts = e.target.value.split("|");
+      var indexLabel = parts[0].indexOf("S&P500") === 0 ? "S&P500" : "KOSPI";
+      ai.targetName = indexLabel + " " + parts[1] + " 업종";
+      nameInput.value = ai.targetName;
+      e.target.value = "";
+    });
 
     var contextTa = el("textarea", { class: "note", style: "min-height:60px;", placeholder: "선택: 최근 실적, 이슈, 참고하고 싶은 맥락 등을 적어두면 더 구체적인 초안이 나옵니다." });
     contextTa.value = ai.context;
@@ -1613,7 +1684,10 @@
       el("div", { class: "field", style: "margin-bottom:6px;" }, [el("label", {}, ["모델명"]), modelInput]),
       el("div", { style: "color:var(--ink-faint);font-size:11.5px;margin-bottom:14px;" }, ["429(quota) 오류가 나면 이 모델명을 바꿔보세요 — 현재 사용 가능한 모델 목록: ", el("a", { href: provider.modelHelpUrl, target: "_blank", rel: "noopener" }, [provider.modelHelpUrl.replace(/^https?:\/\//, "")])]),
       el("label", { style: "display:flex;gap:6px;align-items:center;font-size:12.5px;color:var(--ink-dim);margin-bottom:14px;" }, [rememberCb, "이 브라우저에 키·모델명 저장 (체크 해제 시 세션 종료와 함께 사라짐)"]),
-      el("div", { class: "field", style: "margin-bottom:12px;" }, [el("label", {}, ["종목 / 업종명"]), nameInput]),
+      el("div", { class: "field", style: "margin-bottom:12px;" }, [
+        el("label", {}, ["종목 / 업종명"]),
+        el("div", { class: "row", style: "flex-wrap:nowrap;gap:8px;" }, [nameInput, sectorSel])
+      ]),
       el("div", { class: "field", style: "margin-bottom:14px;" }, [el("label", {}, ["참고 메모 (선택)"]), contextTa]),
       el("button", {
         class: "btn primary", disabled: ai.loading ? true : undefined,
@@ -1664,6 +1738,573 @@
   }
 
   /* ---------------------------------------------------------- */
+  /* 10.6 기술적분석 — 지표 계산                                    */
+  /* ---------------------------------------------------------- */
+
+  function smaSeries(values, period) {
+    var out = new Array(values.length).fill(null);
+    for (var i = period - 1; i < values.length; i++) {
+      var sum = 0;
+      for (var j = i - period + 1; j <= i; j++) sum += values[j];
+      out[i] = sum / period;
+    }
+    return out;
+  }
+
+  function emaSeries(values, period) {
+    var out = new Array(values.length).fill(null);
+    if (values.length < period) return out;
+    var k = 2 / (period + 1);
+    var seed = 0;
+    for (var i = 0; i < period; i++) seed += values[i];
+    seed /= period;
+    out[period - 1] = seed;
+    var prev = seed;
+    for (var i = period; i < values.length; i++) {
+      prev = values[i] * k + prev * (1 - k);
+      out[i] = prev;
+    }
+    return out;
+  }
+
+  function rsiSeries(closes, period) {
+    var out = new Array(closes.length).fill(null);
+    if (closes.length <= period) return out;
+    var gains = [], losses = [];
+    for (var i = 1; i < closes.length; i++) {
+      var diff = closes[i] - closes[i - 1];
+      gains.push(diff > 0 ? diff : 0);
+      losses.push(diff < 0 ? -diff : 0);
+    }
+    var avgG = 0, avgL = 0;
+    for (var i = 0; i < period; i++) { avgG += gains[i]; avgL += losses[i]; }
+    avgG /= period; avgL /= period;
+    out[period] = avgL === 0 ? 100 : 100 - 100 / (1 + avgG / avgL);
+    for (var i = period; i < gains.length; i++) {
+      avgG = (avgG * (period - 1) + gains[i]) / period;
+      avgL = (avgL * (period - 1) + losses[i]) / period;
+      out[i + 1] = avgL === 0 ? 100 : 100 - 100 / (1 + avgG / avgL);
+    }
+    return out;
+  }
+
+  function macdSeries(closes, fast, slow, signalP) {
+    var emaFast = emaSeries(closes, fast);
+    var emaSlow = emaSeries(closes, slow);
+    var macdLine = closes.map(function (_, i) {
+      return (emaFast[i] != null && emaSlow[i] != null) ? emaFast[i] - emaSlow[i] : null;
+    });
+    var validIdx = [], validVals = [];
+    macdLine.forEach(function (v, i) { if (v != null) { validIdx.push(i); validVals.push(v); } });
+    var signalCompact = emaSeries(validVals, signalP);
+    var signalLine = new Array(closes.length).fill(null);
+    signalCompact.forEach(function (v, k) { if (v != null) signalLine[validIdx[k]] = v; });
+    var histogram = closes.map(function (_, i) {
+      return (macdLine[i] != null && signalLine[i] != null) ? macdLine[i] - signalLine[i] : null;
+    });
+    return { macdLine: macdLine, signalLine: signalLine, histogram: histogram };
+  }
+
+  function bollingerBands(closes, period, mult) {
+    var mid = smaSeries(closes, period);
+    var upper = new Array(closes.length).fill(null);
+    var lower = new Array(closes.length).fill(null);
+    for (var i = period - 1; i < closes.length; i++) {
+      var mean = mid[i];
+      var sumSq = 0;
+      for (var j = i - period + 1; j <= i; j++) sumSq += Math.pow(closes[j] - mean, 2);
+      var sd = Math.sqrt(sumSq / period);
+      upper[i] = mean + mult * sd;
+      lower[i] = mean - mult * sd;
+    }
+    return { mid: mid, upper: upper, lower: lower };
+  }
+
+  function computeIndicators(series) {
+    var closes = series.map(function (d) { return d.close; });
+    var volumes = series.map(function (d) { return d.volume; });
+    var sma5 = smaSeries(closes, 5), sma20 = smaSeries(closes, 20), sma60 = smaSeries(closes, 60), sma120 = smaSeries(closes, 120);
+    var rsi14 = rsiSeries(closes, 14);
+    var macdRes = macdSeries(closes, 12, 26, 9);
+    var bb = bollingerBands(closes, 20, 2);
+    var vol20 = smaSeries(volumes, 20);
+
+    var n = closes.length - 1;
+    var last = closes[n];
+    var lookback = Math.max(0, n - 251);
+    var high52 = Math.max.apply(null, closes.slice(lookback));
+    var low52 = Math.min.apply(null, closes.slice(lookback));
+
+    var trendOrder = null;
+    if (sma5[n] != null && sma20[n] != null && sma60[n] != null && sma120[n] != null) {
+      if (sma5[n] > sma20[n] && sma20[n] > sma60[n] && sma60[n] > sma120[n]) trendOrder = "정배열";
+      else if (sma5[n] < sma20[n] && sma20[n] < sma60[n] && sma60[n] < sma120[n]) trendOrder = "역배열";
+      else trendOrder = "혼조";
+    }
+
+    var rsiVal = rsi14[n];
+    var rsiState = rsiVal == null ? null : rsiVal >= 70 ? "과매수" : rsiVal <= 30 ? "과매도" : "중립";
+
+    var macdVal = macdRes.macdLine[n], signalVal = macdRes.signalLine[n];
+    var macdState = (macdVal != null && signalVal != null) ? (macdVal > signalVal ? "골든(상승 모멘텀)" : "데드(하락 모멘텀)") : null;
+
+    var bbUpper = bb.upper[n], bbLower = bb.lower[n];
+    var bbState = (bbUpper != null && bbLower != null)
+      ? (last >= bbUpper ? "상단 돌파(과열 가능)" : last <= bbLower ? "하단 이탈(과매도 가능)" : "밴드 내")
+      : null;
+
+    var volState = (vol20[n] != null)
+      ? (volumes[n] >= vol20[n] * 1.5 ? "평균 대비 급증" : volumes[n] <= vol20[n] * 0.5 ? "평균 대비 급감" : "평균 수준")
+      : null;
+
+    return {
+      last: last, date: series[n].date,
+      sma: { 5: sma5[n], 20: sma20[n], 60: sma60[n], 120: sma120[n] },
+      trendOrder: trendOrder,
+      rsi: rsiVal, rsiState: rsiState,
+      macd: macdVal, signal: signalVal, histogram: macdRes.histogram[n], macdState: macdState,
+      bbUpper: bbUpper, bbLower: bbLower, bbMid: bb.mid[n], bbState: bbState,
+      high52: high52, low52: low52,
+      volume: volumes[n], vol20: vol20[n], volState: volState,
+      overlay: { sma20: sma20, sma60: sma60 }
+    };
+  }
+
+  /* ---------------------------------------------------------- */
+  /* 10.7 기술적분석 — 데이터 조회                                  */
+  /* ---------------------------------------------------------- */
+
+  var taSearchTimer = null;
+
+  function scheduleSymbolSearch(query) {
+    state.ta.query = query;
+    if (taSearchTimer) clearTimeout(taSearchTimer);
+    if (!query || query.trim().length < 1) {
+      state.ta.searchResults = [];
+      state.ta.searching = false;
+      renderTa();
+      return;
+    }
+    state.ta.searching = true;
+    renderTa();
+    taSearchTimer = setTimeout(function () { runSymbolSearch(query.trim()); }, 450);
+  }
+
+  function runSymbolSearch(query) {
+    fetch("https://api.twelvedata.com/symbol_search?symbol=" + encodeURIComponent(query))
+      .then(function (res) { return res.json(); })
+      .then(function (data) {
+        state.ta.searching = false;
+        if (data.status === "error") throw new Error(data.message || "검색 실패");
+        state.ta.searchResults = (data.data || []).slice(0, 12);
+        state.ta.searchError = "";
+        renderAll();
+      })
+      .catch(function (err) {
+        state.ta.searching = false;
+        state.ta.searchError = "검색 실패: " + (err.message || String(err));
+        renderAll();
+      });
+  }
+
+  function selectSymbol(item) {
+    state.ta.selected = item;
+    state.ta.searchResults = [];
+    state.ta.query = "";
+    state.ta.series = null;
+    state.ta.indicators = null;
+    state.ta.aiVerdict = null;
+    state.ta.aiError = "";
+    state.ta.error = "";
+    renderAll();
+  }
+
+  function requestChart() {
+    var ta = state.ta;
+    var key = (ta.tdKey || "").trim();
+    if (!ta.selected) { toast("먼저 종목을 검색해서 선택해 주세요."); return; }
+    if (!key) { toast("Twelve Data API 키를 먼저 입력해 주세요."); return; }
+    ta.loading = true; ta.error = ""; ta.aiVerdict = null; ta.aiError = ""; renderAll();
+
+    var url = "https://api.twelvedata.com/time_series?symbol=" + encodeURIComponent(ta.selected.symbol) +
+      "&interval=1day&outputsize=260&apikey=" + encodeURIComponent(key);
+
+    fetch(url)
+      .then(function (res) { return res.json(); })
+      .then(function (data) {
+        if (data.status === "error") throw new Error(data.message || "조회 실패");
+        var values = data.values || [];
+        if (!values.length) throw new Error("데이터가 없습니다.");
+        var series = values.map(function (v) {
+          return {
+            date: v.datetime,
+            open: parseFloat(v.open), high: parseFloat(v.high), low: parseFloat(v.low),
+            close: parseFloat(v.close), volume: parseFloat(v.volume || 0)
+          };
+        }).reverse();
+        ta.series = series;
+        ta.indicators = computeIndicators(series);
+        ta.loading = false;
+        if (ta.rememberTdKey) { try { localStorage.setItem(STORAGE_TD_KEY, key); } catch (e) {} }
+        renderAll();
+        toast(ta.selected.instrument_name + " 차트를 불러왔습니다.");
+      })
+      .catch(function (err) {
+        ta.loading = false;
+        ta.error = err.message || String(err);
+        renderAll();
+      });
+  }
+
+  function fmtNum(v, digits) {
+    if (v == null || isNaN(v)) return "—";
+    return v.toLocaleString(undefined, { minimumFractionDigits: digits == null ? 2 : digits, maximumFractionDigits: digits == null ? 2 : digits });
+  }
+
+  function buildTaPrompt(symbolInfo, ind) {
+    return "당신은 기술적 분석가입니다. 아래 계산된 지표만 근거로 매수/보유/매도 의견을 내세요. 실시간 뉴스나 재무제표는 알 수 없다고 가정합니다.\n" +
+      "종목: " + symbolInfo.instrument_name + " (" + symbolInfo.symbol + ", " + symbolInfo.exchange + ")\n" +
+      "기준일: " + ind.date + ", 종가: " + fmtNum(ind.last) + "\n" +
+      "이동평균: 5일=" + fmtNum(ind.sma[5]) + " 20일=" + fmtNum(ind.sma[20]) + " 60일=" + fmtNum(ind.sma[60]) + " 120일=" + fmtNum(ind.sma[120]) + " (배열: " + (ind.trendOrder || "판단불가") + ")\n" +
+      "RSI(14): " + fmtNum(ind.rsi, 1) + " (" + (ind.rsiState || "판단불가") + ")\n" +
+      "MACD(12,26,9): MACD=" + fmtNum(ind.macd) + " 시그널=" + fmtNum(ind.signal) + " 히스토그램=" + fmtNum(ind.histogram) + " (" + (ind.macdState || "판단불가") + ")\n" +
+      "볼린저밴드(20,2): 상단=" + fmtNum(ind.bbUpper) + " 중심=" + fmtNum(ind.bbMid) + " 하단=" + fmtNum(ind.bbLower) + " (" + (ind.bbState || "판단불가") + ")\n" +
+      "52주 최고/최저: " + fmtNum(ind.high52) + " / " + fmtNum(ind.low52) + "\n" +
+      "거래량: " + fmtNum(ind.volume, 0) + " (20일 평균 " + fmtNum(ind.vol20, 0) + ", " + (ind.volState || "판단불가") + ")\n\n" +
+      "반드시 아래 JSON 형식으로만 답하세요 (다른 텍스트·코드블록 금지):\n" +
+      '{"verdict":"매수 또는 보유 또는 매도","confidence":"높음 또는 중간 또는 낮음","summary":"한 문장 요약","reasons":["근거1","근거2","근거3"],"risks":["위험요인1","위험요인2"]}\n' +
+      "reasons에는 위 지표명을 구체적으로 인용하세요. 기술적 지표는 후행 신호이며 미래를 보장하지 않는다는 점을 감안해 판단하세요.";
+  }
+
+  function requestTaVerdict() {
+    var ta = state.ta;
+    var provider = PROVIDERS[state.ai.provider];
+    var apiKey = (state.ai.keys[state.ai.provider] || "").trim();
+    var model = (state.ai.models[state.ai.provider] || provider.defaultModel).trim();
+    if (!ta.indicators) { toast("먼저 차트를 불러와 주세요."); return; }
+    if (!apiKey) { toast("'AI 초안' 탭에서 " + provider.label + " API 키를 먼저 입력해 주세요."); return; }
+    ta.aiLoading = true; ta.aiError = ""; renderAll();
+
+    var prompt = buildTaPrompt(ta.selected, ta.indicators);
+    var req = provider.buildRequest(prompt, apiKey, model);
+
+    fetch(req.url, { method: "POST", headers: req.headers, body: req.body })
+      .then(function (res) {
+        if (!res.ok) return res.text().then(function (t) { throw new Error("API 오류 (HTTP " + res.status + "): " + t.slice(0, 200)); });
+        return res.json();
+      })
+      .then(function (data) {
+        var text = provider.parseResponse(data);
+        var match = text.match(/\{[\s\S]*\}/);
+        if (!match) throw new Error("응답에서 JSON을 찾지 못했습니다.");
+        var verdict = JSON.parse(match[0]);
+        if (!verdict.verdict) throw new Error("응답 형식이 올바르지 않습니다.");
+        ta.aiVerdict = verdict;
+        ta.aiLoading = false;
+        renderAll();
+        toast("AI 의견을 받았습니다.");
+      })
+      .catch(function (err) {
+        ta.aiLoading = false;
+        ta.aiError = err.message || String(err);
+        renderAll();
+      });
+  }
+
+  /* ---------------------------------------------------------- */
+  /* 10.8 기술적분석 — 차트 그리기                                  */
+  /* ---------------------------------------------------------- */
+
+  function cssVar(name) {
+    return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  }
+
+  function drawTaChart() {
+    var canvas = document.getElementById("taChartCanvas");
+    if (!canvas || !state.ta.series) return;
+    var full = state.ta.series;
+    var fullOverlay = state.ta.indicators.overlay;
+    var start = Math.max(0, full.length - CHART_WINDOW);
+    var series = full.slice(start);
+    var sma20 = fullOverlay.sma20.slice(start);
+    var sma60 = fullOverlay.sma60.slice(start);
+
+    var dpr = window.devicePixelRatio || 1;
+    var cssW = canvas.clientWidth || 600;
+    var cssH = canvas.clientHeight || 320;
+    canvas.width = cssW * dpr;
+    canvas.height = cssH * dpr;
+    var ctx = canvas.getContext("2d");
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+    var W = cssW, H = cssH;
+    ctx.clearRect(0, 0, W, H);
+
+    var gridColor = cssVar("--border");
+    var textColor = cssVar("--ink-faint");
+    var posColor = cssVar("--positive");
+    var negColor = cssVar("--negative");
+    var sma20Color = cssVar("--accent");
+    var sma60Color = cssVar("--ink-dim");
+
+    var padding = { left: 54, right: 8, top: 8, bottom: 4 };
+    var priceH = (H - padding.top - padding.bottom) * 0.68;
+    var gap = 14;
+    var volH = (H - padding.top - padding.bottom) - priceH - gap;
+    var priceTop = padding.top;
+    var volTop = priceTop + priceH + gap;
+
+    var n = series.length;
+    var highs = series.map(function (d) { return d.high; });
+    var lows = series.map(function (d) { return d.low; });
+    var maxP = Math.max.apply(null, highs);
+    var minP = Math.min.apply(null, lows);
+    if (maxP === minP) { maxP += 1; minP -= 1; }
+    var maxV = Math.max.apply(null, series.map(function (d) { return d.volume; })) || 1;
+
+    var plotW = W - padding.left - padding.right;
+    var candleW = plotW / n;
+
+    function xAt(i) { return padding.left + i * candleW + candleW / 2; }
+    function yPrice(p) { return priceTop + priceH * (1 - (p - minP) / (maxP - minP)); }
+    function yVol(v) { return volTop + volH * (1 - v / maxV); }
+
+    ctx.font = "10px ui-monospace, monospace";
+    ctx.strokeStyle = gridColor;
+    ctx.fillStyle = textColor;
+    ctx.lineWidth = 1;
+    [maxP, (maxP + minP) / 2, minP].forEach(function (p) {
+      var y = yPrice(p);
+      ctx.beginPath(); ctx.moveTo(padding.left, y); ctx.lineTo(W - padding.right, y); ctx.stroke();
+      ctx.fillText(fmtNum(p, p >= 1000 ? 0 : 2), 2, y + 3);
+    });
+
+    series.forEach(function (d, i) {
+      var x = xAt(i);
+      var up = d.close >= d.open;
+      ctx.strokeStyle = up ? posColor : negColor;
+      ctx.fillStyle = up ? posColor : negColor;
+      ctx.beginPath(); ctx.moveTo(x, yPrice(d.high)); ctx.lineTo(x, yPrice(d.low)); ctx.stroke();
+      var bodyTop = yPrice(Math.max(d.open, d.close));
+      var bodyH = Math.max(1, Math.abs(yPrice(d.open) - yPrice(d.close)));
+      ctx.fillRect(x - candleW * 0.35, bodyTop, Math.max(1, candleW * 0.7), bodyH);
+    });
+
+    function drawLine(arr, color) {
+      ctx.strokeStyle = color; ctx.lineWidth = 1.4; ctx.beginPath();
+      var started = false;
+      arr.forEach(function (v, i) {
+        if (v == null) return;
+        var x = xAt(i), y = yPrice(v);
+        if (!started) { ctx.moveTo(x, y); started = true; } else ctx.lineTo(x, y);
+      });
+      ctx.stroke();
+    }
+    drawLine(sma20, sma20Color);
+    drawLine(sma60, sma60Color);
+
+    series.forEach(function (d, i) {
+      var x = xAt(i);
+      var up = d.close >= d.open;
+      ctx.fillStyle = up ? posColor : negColor;
+      ctx.globalAlpha = 0.55;
+      var y = yVol(d.volume);
+      ctx.fillRect(x - candleW * 0.35, y, Math.max(1, candleW * 0.7), (volTop + volH) - y);
+      ctx.globalAlpha = 1;
+    });
+
+    ctx.fillStyle = textColor;
+    ctx.font = "10px ui-monospace, monospace";
+    ctx.fillText(series[0].date, padding.left, H - 2);
+    var lastLabel = series[n - 1].date;
+    ctx.fillText(lastLabel, W - padding.right - ctx.measureText(lastLabel).width, H - 2);
+  }
+
+  window.addEventListener("resize", function () {
+    if (state.ta.series && state.activeTab === "ta") drawTaChart();
+  });
+
+  /* ---------------------------------------------------------- */
+  /* 10.9 기술적분석 — 렌더링                                       */
+  /* ---------------------------------------------------------- */
+
+  function renderTa() {
+    var p = document.getElementById("panel-ta");
+    p.innerHTML = "";
+    var ta = state.ta;
+
+    p.appendChild(el("div", { class: "card", style: "padding:18px 22px;" }, [
+      el("h2", { class: "serif", style: "margin-top:0;" }, ["📈 기술적분석"]),
+      el("p", { class: "stage-desc" }, [
+        "종목명이나 티커로 검색해 캔들차트·이동평균·RSI·MACD·볼린저밴드 등 지표를 확인하고, 'AI 초안' 탭에서 설정한 AI 키로 매수·보유·매도 의견을 받아볼 수 있습니다. 기술적 지표는 과거 가격의 후행 신호이며 미래 수익을 보장하지 않습니다."
+      ])
+    ]));
+
+    // 검색
+    var searchInput = el("input", { type: "text", placeholder: "예: samsung, apple, 005930, AAPL", value: ta.query });
+    searchInput.addEventListener("input", function (e) { scheduleSymbolSearch(e.target.value); });
+    var searchCard = el("div", { class: "card", style: "padding:18px 22px;margin-top:14px;" }, [
+      el("div", { class: "section-title" }, ["1. 종목 검색"]),
+      el("div", { class: "field" }, [el("label", {}, ["종목명 또는 티커 (영문 검색이 가장 잘 됩니다)"]), searchInput])
+    ]);
+    if (ta.searching) {
+      searchCard.appendChild(el("div", { style: "color:var(--ink-faint);font-size:12.5px;margin-top:8px;" }, [el("span", { class: "spinner" }), "검색 중..."]));
+    }
+    if (ta.searchError) {
+      searchCard.appendChild(el("div", { class: "callout warn", style: "margin-top:10px;" }, [ta.searchError]));
+    }
+    if (ta.searchResults.length) {
+      var resultList = el("div", { class: "symbol-results" });
+      ta.searchResults.forEach(function (item) {
+        resultList.appendChild(el("button", {
+          class: "symbol-result-item", type: "button",
+          onclick: function () { selectSymbol(item); }
+        }, [
+          el("span", { class: "sym" }, [item.symbol]),
+          el("span", { class: "nm" }, [item.instrument_name]),
+          el("span", { class: "ex" }, [item.exchange + (item.country ? " · " + item.country : "")])
+        ]));
+      });
+      searchCard.appendChild(resultList);
+    }
+    p.appendChild(searchCard);
+
+    if (!ta.selected) {
+      p.appendChild(el("div", { class: "empty" }, ["종목을 검색해서 선택하면 다음 단계가 나타납니다."]));
+      return;
+    }
+
+    // 선택된 종목 + Twelve Data 키
+    var tdKeyInput = el("input", { type: "password", placeholder: "Twelve Data API 키" });
+    tdKeyInput.value = ta.tdKey || "";
+    tdKeyInput.addEventListener("input", function (e) {
+      ta.tdKey = e.target.value;
+      if (ta.rememberTdKey) { try { localStorage.setItem(STORAGE_TD_KEY, e.target.value); } catch (err) {} }
+    });
+    var tdRememberCb = el("input", { type: "checkbox" });
+    tdRememberCb.checked = ta.rememberTdKey;
+    tdRememberCb.addEventListener("change", function (e) {
+      ta.rememberTdKey = e.target.checked;
+      if (!ta.rememberTdKey) { try { localStorage.removeItem(STORAGE_TD_KEY); } catch (err) {} }
+      else { try { localStorage.setItem(STORAGE_TD_KEY, ta.tdKey || ""); } catch (err) {} }
+    });
+
+    var selectedCard = el("div", { class: "card", style: "padding:18px 22px;margin-top:14px;" }, [
+      el("div", { class: "section-title" }, ["2. 선택한 종목"]),
+      el("div", { class: "row", style: "margin-bottom:12px;" }, [
+        el("span", { class: "pill neu" }, [ta.selected.symbol]),
+        el("strong", {}, [ta.selected.instrument_name]),
+        el("span", { style: "color:var(--ink-faint);font-size:12.5px;" }, [ta.selected.exchange + (ta.selected.currency ? " · " + ta.selected.currency : "")])
+      ]),
+      el("div", { class: "callout", style: "margin-bottom:12px;" }, [
+        "차트·지표 조회에는 Twelve Data의 무료 API 키가 필요합니다(신용카드 불필요, 분당 호출 제한 있음). ",
+        el("a", { href: "https://twelvedata.com/pricing", target: "_blank", rel: "noopener" }, ["twelvedata.com/pricing"]),
+        "에서 발급하세요."
+      ]),
+      el("div", { class: "field", style: "margin-bottom:8px;" }, [el("label", {}, ["Twelve Data API 키"]), tdKeyInput]),
+      el("label", { style: "display:flex;gap:6px;align-items:center;font-size:12.5px;color:var(--ink-dim);margin-bottom:14px;" }, [tdRememberCb, "이 브라우저에 키 저장"]),
+      el("button", {
+        class: "btn primary", disabled: ta.loading ? true : undefined,
+        onclick: requestChart
+      }, ta.loading ? [el("span", { class: "spinner" }), "불러오는 중..."] : ["📊 차트·지표 불러오기"])
+    ]);
+    p.appendChild(selectedCard);
+
+    if (ta.error) {
+      p.appendChild(el("div", { class: "callout warn", style: "margin-top:14px;" }, [el("strong", {}, ["오류. "]), ta.error]));
+    }
+
+    if (!ta.indicators) return;
+    var ind = ta.indicators;
+
+    // 차트
+    var chartCard = el("div", { class: "card", style: "padding:18px 22px;margin-top:14px;" }, [
+      el("div", { class: "section-title" }, ["3. 차트 (최근 " + Math.min(CHART_WINDOW, ta.series.length) + "거래일, 일봉)"]),
+      el("div", { class: "row", style: "gap:14px;margin-bottom:8px;font-size:11.5px;color:var(--ink-dim);" }, [
+        el("span", {}, [el("span", { style: "display:inline-block;width:10px;height:10px;background:var(--accent);border-radius:2px;margin-right:4px;vertical-align:middle;" }), "SMA20"]),
+        el("span", {}, [el("span", { style: "display:inline-block;width:10px;height:10px;background:var(--ink-dim);border-radius:2px;margin-right:4px;vertical-align:middle;" }), "SMA60"])
+      ]),
+      el("div", { class: "chart-canvas-wrap" }, [el("canvas", { id: "taChartCanvas" })])
+    ]);
+    p.appendChild(chartCard);
+    requestAnimationFrame(function () { drawTaChart(); });
+
+    // 지표 상세 설명
+    var indicatorRows = [
+      ["종가 / 기준일", fmtNum(ind.last, ind.last >= 1000 ? 0 : 2) + " (" + ind.date + ")", "가장 최근 거래일의 종가입니다."],
+      ["이동평균 (5/20/60/120일)",
+        fmtNum(ind.sma[5]) + " / " + fmtNum(ind.sma[20]) + " / " + fmtNum(ind.sma[60]) + " / " + fmtNum(ind.sma[120]) + " — " + (ind.trendOrder || "데이터 부족"),
+        "단기~장기 이동평균의 배열 순서로 추세를 봅니다. '정배열'(단기>장기)은 상승추세, '역배열'은 하락추세로 해석하는 것이 일반적입니다."],
+      ["RSI(14)", fmtNum(ind.rsi, 1) + " — " + (ind.rsiState || "데이터 부족"),
+        "14일간 상승폭·하락폭의 비율로 과매수(70 이상)·과매도(30 이하) 여부를 봅니다. 추세가 강할 때는 과매수 상태가 오래 지속될 수 있어 단독 신호로 쓰지 않는 것이 좋습니다."],
+      ["MACD(12,26,9)", "MACD " + fmtNum(ind.macd) + " · 시그널 " + fmtNum(ind.signal) + " · 히스토그램 " + fmtNum(ind.histogram) + " — " + (ind.macdState || "데이터 부족"),
+        "단기·장기 지수이동평균의 차이(MACD선)가 그 신호선을 상향 돌파하면 '골든크로스'(상승 모멘텀), 하향 돌파하면 '데드크로스'(하락 모멘텀)로 해석합니다."],
+      ["볼린저밴드(20, 2)", "상단 " + fmtNum(ind.bbUpper) + " · 중심 " + fmtNum(ind.bbMid) + " · 하단 " + fmtNum(ind.bbLower) + " — " + (ind.bbState || "데이터 부족"),
+        "20일 이동평균 ± 표준편차 2배로 변동성 밴드를 만듭니다. 상단 돌파는 단기 과열, 하단 이탈은 단기 과매도 가능성을 시사합니다."],
+      ["52주 최고 / 최저", fmtNum(ind.high52) + " / " + fmtNum(ind.low52), "조회 기간(최대 약 1년) 내 종가 기준 최고·최저가입니다."],
+      ["거래량 (20일 평균 대비)", fmtNum(ind.volume, 0) + " (평균 " + fmtNum(ind.vol20, 0) + ") — " + (ind.volState || "데이터 부족"),
+        "가격 변화가 평소보다 큰 거래량을 동반하는지 확인합니다. 거래량 없는 가격 변동은 지속성이 낮을 수 있습니다."]
+    ];
+    var detailWrap = el("div", { class: "table-wrap" });
+    var detailTable = el("table");
+    detailTable.appendChild(el("thead", {}, [el("tr", {}, [el("th", {}, ["지표·기법"]), el("th", {}, ["결과"]), el("th", {}, ["설명"])])]));
+    var detailTb = el("tbody");
+    indicatorRows.forEach(function (row) {
+      detailTb.appendChild(el("tr", {}, [
+        el("td", { style: "font-weight:600;white-space:nowrap;" }, [row[0]]),
+        el("td", { class: "mono", style: "white-space:nowrap;" }, [row[1]]),
+        el("td", { style: "color:var(--ink-dim);" }, [row[2]])
+      ]));
+    });
+    detailTable.appendChild(detailTb);
+    detailWrap.appendChild(detailTable);
+    p.appendChild(el("div", { class: "card", style: "padding:18px 22px;margin-top:14px;" }, [
+      el("div", { class: "section-title" }, ["4. 활용한 지표·기법과 결과 상세"]),
+      detailWrap
+    ]));
+
+    // AI 매수/매도/보유 의견
+    var aiProvider = PROVIDERS[state.ai.provider];
+    var verdictCard = el("div", { class: "card", style: "padding:18px 22px;margin-top:14px;" }, [
+      el("div", { class: "section-title" }, ["5. AI 매수·보유·매도 의견"]),
+      el("p", { class: "stage-desc", style: "margin-top:0;" }, [
+        "'AI 초안' 탭에서 설정한 " + aiProvider.label + " 키를 그대로 사용합니다. 위에서 계산한 지표만 근거로 판단하며, 뉴스·재무제표·실시간 수급은 반영하지 않습니다. 투자 조언이 아니라 참고용 의견입니다."
+      ]),
+      el("button", {
+        class: "btn primary", disabled: ta.aiLoading ? true : undefined,
+        onclick: requestTaVerdict
+      }, ta.aiLoading ? [el("span", { class: "spinner" }), "분석 중..."] : ["🤖 AI 의견 요청"])
+    ]);
+    if (ta.aiError) {
+      verdictCard.appendChild(el("div", { class: "callout warn", style: "margin-top:12px;" }, [ta.aiError]));
+    }
+    if (ta.aiVerdict) {
+      var v = ta.aiVerdict;
+      var tone = v.verdict === "매수" ? "pos" : v.verdict === "매도" ? "neg" : "neu";
+      var verdictBody = el("div", { class: "verdict-box", style: "margin-top:14px;" });
+      verdictBody.appendChild(el("div", { class: "row", style: "margin-bottom:10px;" }, [
+        el("span", { class: "pill " + tone, style: "font-size:15px;padding:6px 14px;" }, [v.verdict || "-"]),
+        el("span", { style: "color:var(--ink-faint);font-size:12.5px;" }, ["확신도: " + (v.confidence || "-")])
+      ]));
+      if (v.summary) verdictBody.appendChild(el("p", { style: "font-weight:600;margin:0 0 10px;" }, [v.summary]));
+      if (v.reasons && v.reasons.length) {
+        verdictBody.appendChild(el("div", { class: "section-title", style: "font-size:11px;" }, ["근거"]));
+        var reasonsUl = el("ul", { class: "verdict-list" });
+        v.reasons.forEach(function (r) { reasonsUl.appendChild(el("li", {}, [r])); });
+        verdictBody.appendChild(reasonsUl);
+      }
+      if (v.risks && v.risks.length) {
+        verdictBody.appendChild(el("div", { class: "section-title", style: "font-size:11px;margin-top:10px;" }, ["위험 요인"]));
+        var risksUl = el("ul", { class: "verdict-list" });
+        v.risks.forEach(function (r) { risksUl.appendChild(el("li", {}, [r])); });
+        verdictBody.appendChild(risksUl);
+      }
+      verdictCard.appendChild(verdictBody);
+    }
+    p.appendChild(verdictCard);
+  }
+
+  /* ---------------------------------------------------------- */
   /* 11. 전체 렌더                                                */
   /* ---------------------------------------------------------- */
 
@@ -1679,6 +2320,7 @@
     renderRecords();
     renderAuto();
     renderAi();
+    renderTa();
   }
 
   renderAll();
