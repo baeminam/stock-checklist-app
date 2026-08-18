@@ -1,5 +1,5 @@
 {
-  "fetched_at": "2026-08-17T21:54:11+00:00",
+  "fetched_at": "2026-08-18T07:58:08+00:00",
   "source_note": "공개 무료 API(Yahoo Finance, Frankfurter, 미국 재무부, 뉴욕 연준)에서 조회한 참고 데이터입니다. 투자 조언이 아니며, 점수는 사용자가 직접 판단해서 매깁니다.",
   "items": {
     "usdkrw": {
@@ -28,22 +28,22 @@
     "vix": {
       "ok": true,
       "data": {
-        "latest_date": "2026-08-17",
-        "latest": 15.19,
+        "latest_date": "2026-08-18",
+        "latest": 15.87,
         "vs_5pts_ago": {
           "date": "2026-08-10",
           "value": 15.46,
-          "change": -0.27
+          "change": 0.41
         },
         "vs_20pts_ago": {
-          "date": "2026-07-20",
-          "value": 18.65,
-          "change": -3.46
+          "date": "2026-07-15",
+          "value": 15.67,
+          "change": 0.2
         },
         "vs_60pts_ago": {
-          "date": "2026-05-21",
-          "value": 16.76,
-          "change": -1.57
+          "date": "2026-05-18",
+          "value": 17.82,
+          "change": -1.95
         }
       },
       "label": "VIX 지수"
@@ -51,22 +51,22 @@
     "kospi": {
       "ok": true,
       "data": {
-        "latest_date": "2026-08-14",
-        "latest": 6977.9399,
+        "latest_date": "2026-08-18",
+        "latest": 6869.8301,
         "vs_5pts_ago": {
-          "date": "2026-08-07",
-          "value": 6258.77,
-          "change": 719.1699
+          "date": "2026-08-10",
+          "value": 6299.6602,
+          "change": 570.1699
         },
         "vs_20pts_ago": {
-          "date": "2026-07-16",
-          "value": 6820.6001,
-          "change": 157.3398
+          "date": "2026-07-20",
+          "value": 6516.27,
+          "change": 353.5601
         },
         "vs_60pts_ago": {
-          "date": "2026-05-19",
-          "value": 7271.6602,
-          "change": -293.7202
+          "date": "2026-05-20",
+          "value": 7208.9502,
+          "change": -339.1201
         }
       },
       "label": "KOSPI 지수"
@@ -74,22 +74,12 @@
     "us10y_nominal": {
       "ok": true,
       "data": {
-        "latest_date": "2026-08-17",
-        "latest": 4.724,
+        "latest_date": "2026-08-14",
+        "latest": 4.696,
         "vs_5pts_ago": {
-          "date": "2026-08-10",
-          "value": 4.699,
-          "change": 0.025
-        },
-        "vs_20pts_ago": {
-          "date": "2026-07-20",
-          "value": 4.598,
-          "change": 0.126
-        },
-        "vs_60pts_ago": {
-          "date": "2026-05-20",
-          "value": 4.572,
-          "change": 0.152
+          "date": "2026-08-07",
+          "value": 4.66,
+          "change": 0.036
         }
       },
       "label": "미국 10년물 명목금리(%)"
@@ -143,22 +133,12 @@
     "breakeven_inflation": {
       "ok": true,
       "data": {
-        "latest_date": "2026-08-17",
-        "latest": 2.284,
+        "latest_date": "2026-08-14",
+        "latest": 2.256,
         "vs_5pts_ago": {
-          "date": "2026-08-10",
-          "value": 2.269,
-          "change": 0.015
-        },
-        "vs_20pts_ago": {
-          "date": "2026-07-20",
-          "value": 2.248,
-          "change": 0.036
-        },
-        "vs_60pts_ago": {
-          "date": "2026-05-20",
-          "value": 2.442,
-          "change": -0.158
+          "date": "2026-08-07",
+          "value": 2.23,
+          "change": 0.026
         }
       },
       "approx": true,
