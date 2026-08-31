@@ -1,5 +1,5 @@
 {
-  "fetched_at": "2026-08-30T23:12:04+00:00",
+  "fetched_at": "2026-08-31T12:24:03+00:00",
   "source_note": "공개 무료 API(Yahoo Finance, Frankfurter, 미국 재무부, 뉴욕 연준)에서 조회한 참고 데이터입니다. 투자 조언이 아니며, 점수는 사용자가 직접 판단해서 매깁니다.",
   "items": {
     "usdkrw": {
@@ -28,22 +28,22 @@
     "vix": {
       "ok": true,
       "data": {
-        "latest_date": "2026-08-28",
-        "latest": 14.43,
+        "latest_date": "2026-08-31",
+        "latest": 15.23,
         "vs_5pts_ago": {
-          "date": "2026-08-21",
-          "value": 15.13,
-          "change": -0.7
+          "date": "2026-08-24",
+          "value": 15.85,
+          "change": -0.62
         },
         "vs_20pts_ago": {
-          "date": "2026-07-31",
-          "value": 15.99,
-          "change": -1.56
+          "date": "2026-08-03",
+          "value": 15.86,
+          "change": -0.63
         },
         "vs_60pts_ago": {
-          "date": "2026-06-03",
-          "value": 16.06,
-          "change": -1.63
+          "date": "2026-06-04",
+          "value": 15.4,
+          "change": -0.17
         }
       },
       "label": "VIX 지수"
@@ -51,22 +51,22 @@
     "kospi": {
       "ok": true,
       "data": {
-        "latest_date": "2026-08-28",
-        "latest": 6788.8799,
+        "latest_date": "2026-08-31",
+        "latest": 6820.02,
         "vs_5pts_ago": {
-          "date": "2026-08-21",
-          "value": 6912.9502,
-          "change": -124.0703
+          "date": "2026-08-24",
+          "value": 6696.96,
+          "change": 123.0601
         },
         "vs_20pts_ago": {
-          "date": "2026-07-30",
-          "value": 5593.5601,
-          "change": 1195.3198
+          "date": "2026-07-31",
+          "value": 6595.4502,
+          "change": 224.5698
         },
         "vs_60pts_ago": {
-          "date": "2026-06-02",
-          "value": 8801.4902,
-          "change": -2012.6104
+          "date": "2026-06-04",
+          "value": 8639.4102,
+          "change": -1819.3901
         }
       },
       "label": "KOSPI 지수"
