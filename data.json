@@ -1,5 +1,5 @@
 {
-  "fetched_at": "2026-09-09T22:56:26+00:00",
+  "fetched_at": "2026-09-10T10:23:19+00:00",
   "source_note": "공개 무료 API(Yahoo Finance, Frankfurter, 미국 재무부, 뉴욕 연준)에서 조회한 참고 데이터입니다. 투자 조언이 아니며, 점수는 사용자가 직접 판단해서 매깁니다.",
   "items": {
     "usdkrw": {
@@ -28,22 +28,22 @@
     "vix": {
       "ok": true,
       "data": {
-        "latest_date": "2026-09-09",
-        "latest": 16.46,
+        "latest_date": "2026-09-10",
+        "latest": 16.51,
         "vs_5pts_ago": {
-          "date": "2026-09-02",
-          "value": 15.2,
-          "change": 1.26
+          "date": "2026-09-03",
+          "value": 14.32,
+          "change": 2.19
         },
         "vs_20pts_ago": {
-          "date": "2026-08-12",
-          "value": 14.55,
-          "change": 1.91
+          "date": "2026-08-13",
+          "value": 14.63,
+          "change": 1.88
         },
         "vs_60pts_ago": {
-          "date": "2026-06-15",
-          "value": 16.2,
-          "change": 0.26
+          "date": "2026-06-16",
+          "value": 16.41,
+          "change": 0.1
         }
       },
       "label": "VIX 지수"
@@ -51,22 +51,22 @@
     "kospi": {
       "ok": true,
       "data": {
-        "latest_date": "2026-09-08",
-        "latest": 6954.52,
+        "latest_date": "2026-09-10",
+        "latest": 7033.9199,
         "vs_5pts_ago": {
-          "date": "2026-09-01",
-          "value": 6835.7998,
-          "change": 118.7202
+          "date": "2026-09-03",
+          "value": 6579.48,
+          "change": 454.4399
         },
         "vs_20pts_ago": {
-          "date": "2026-08-10",
-          "value": 6299.6602,
-          "change": 654.8599
+          "date": "2026-08-12",
+          "value": 6579.04,
+          "change": 454.8799
         },
         "vs_60pts_ago": {
-          "date": "2026-06-12",
-          "value": 8123.6201,
-          "change": -1169.1001
+          "date": "2026-06-16",
+          "value": 8726.5996,
+          "change": -1692.6797
         }
       },
       "label": "KOSPI 지수"
