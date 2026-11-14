@@ -1,5 +1,5 @@
 {
-  "fetched_at": "2026-11-14T01:17:07+00:00",
+  "fetched_at": "2026-11-14T12:49:53+00:00",
   "source_note": "공개 무료 API(Yahoo Finance, Frankfurter, 미국 재무부, 뉴욕 연준)에서 조회한 참고 데이터입니다. 투자 조언이 아니며, 점수는 사용자가 직접 판단해서 매깁니다.",
   "items": {
     "usdkrw": {
@@ -51,22 +51,22 @@
     "kospi": {
       "ok": true,
       "data": {
-        "latest_date": "2026-11-12",
-        "latest": 5342.73,
+        "latest_date": "2026-11-13",
+        "latest": 5290.5298,
         "vs_5pts_ago": {
-          "date": "2026-11-05",
-          "value": 5383.7998,
-          "change": -41.0698
+          "date": "2026-11-06",
+          "value": 5059.6899,
+          "change": 230.8398
         },
         "vs_20pts_ago": {
-          "date": "2026-10-15",
-          "value": 5554.2202,
-          "change": -211.4902
+          "date": "2026-10-16",
+          "value": 5668.0498,
+          "change": -377.52
         },
         "vs_60pts_ago": {
-          "date": "2026-08-13",
-          "value": 6813.3398,
-          "change": -1470.6099
+          "date": "2026-08-14",
+          "value": 6977.9399,
+          "change": -1687.4102
         }
       },
       "label": "KOSPI 지수"
