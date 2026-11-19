@@ -1,26 +1,26 @@
 {
-  "fetched_at": "2026-11-18T14:56:03+00:00",
+  "fetched_at": "2026-11-19T02:17:18+00:00",
   "source_note": "공개 무료 API(Yahoo Finance, Frankfurter, 미국 재무부, 뉴욕 연준)에서 조회한 참고 데이터입니다. 투자 조언이 아니며, 점수는 사용자가 직접 판단해서 매깁니다.",
   "items": {
     "usdkrw": {
       "ok": true,
       "data": {
-        "latest_date": "2026-11-17",
-        "latest": 1336.21,
+        "latest_date": "2026-11-18",
+        "latest": 1332.33,
         "vs_5pts_ago": {
-          "date": "2026-11-10",
-          "value": 1339.0,
-          "change": -2.79
+          "date": "2026-11-11",
+          "value": 1336.9,
+          "change": -4.57
         },
         "vs_20pts_ago": {
-          "date": "2026-10-20",
-          "value": 1327.84,
-          "change": 8.37
+          "date": "2026-10-21",
+          "value": 1325.57,
+          "change": 6.76
         },
         "vs_60pts_ago": {
-          "date": "2026-08-25",
-          "value": 1383.07,
-          "change": -46.86
+          "date": "2026-08-26",
+          "value": 1383.49,
+          "change": -51.16
         }
       },
       "label": "원/달러 환율 (USD/KRW)"
@@ -29,21 +29,21 @@
       "ok": true,
       "data": {
         "latest_date": "2026-11-18",
-        "latest": 25.2,
+        "latest": 24.56,
         "vs_5pts_ago": {
           "date": "2026-11-11",
           "value": 17.49,
-          "change": 7.71
+          "change": 7.07
         },
         "vs_20pts_ago": {
           "date": "2026-10-21",
           "value": 16.68,
-          "change": 8.52
+          "change": 7.88
         },
         "vs_60pts_ago": {
           "date": "2026-08-26",
           "value": 15.21,
-          "change": 9.99
+          "change": 9.35
         }
       },
       "label": "VIX 지수"
@@ -51,22 +51,22 @@
     "kospi": {
       "ok": true,
       "data": {
-        "latest_date": "2026-11-18",
-        "latest": 5067.4399,
+        "latest_date": "2026-11-19",
+        "latest": 5024.21,
         "vs_5pts_ago": {
           "date": "2026-11-11",
           "value": 5375.3599,
-          "change": -307.9199
+          "change": -351.1499
         },
         "vs_20pts_ago": {
           "date": "2026-10-21",
           "value": 5735.6602,
-          "change": -668.2202
+          "change": -711.4502
         },
         "vs_60pts_ago": {
           "date": "2026-08-20",
           "value": 6852.5801,
-          "change": -1785.1401
+          "change": -1828.3701
         }
       },
       "label": "KOSPI 지수"
@@ -75,21 +75,21 @@
       "ok": true,
       "data": {
         "latest_date": "2026-11-18",
-        "latest": 5.08,
+        "latest": 5.066,
         "vs_5pts_ago": {
           "date": "2026-11-11",
           "value": 4.998,
-          "change": 0.082
+          "change": 0.068
         },
         "vs_20pts_ago": {
           "date": "2026-10-21",
           "value": 5.146,
-          "change": -0.066
+          "change": -0.08
         },
         "vs_60pts_ago": {
           "date": "2026-08-25",
           "value": 4.639,
-          "change": 0.441
+          "change": 0.427
         }
       },
       "label": "미국 10년물 명목금리(%)"
@@ -97,22 +97,22 @@
     "us10y_real": {
       "ok": true,
       "data": {
-        "latest_date": "2026-11-17",
-        "latest": 2.89,
+        "latest_date": "2026-11-18",
+        "latest": 2.88,
         "vs_5pts_ago": {
-          "date": "2026-11-09",
-          "value": 2.66,
-          "change": 0.23
+          "date": "2026-11-10",
+          "value": 2.78,
+          "change": 0.1
         },
         "vs_20pts_ago": {
-          "date": "2026-10-19",
-          "value": 2.8,
-          "change": 0.09
+          "date": "2026-10-20",
+          "value": 2.77,
+          "change": 0.11
         },
         "vs_60pts_ago": {
-          "date": "2026-08-20",
-          "value": 2.35,
-          "change": 0.54
+          "date": "2026-08-21",
+          "value": 2.4,
+          "change": 0.48
         }
       },
       "label": "미국 10년물 실질금리(TIPS, %)"
@@ -144,21 +144,21 @@
       "ok": true,
       "data": {
         "latest_date": "2026-11-18",
-        "latest": 2.19,
+        "latest": 2.186,
         "vs_5pts_ago": {
           "date": "2026-11-11",
-          "value": 2.338,
-          "change": -0.148
+          "value": 2.218,
+          "change": -0.032
         },
         "vs_20pts_ago": {
           "date": "2026-10-21",
-          "value": 2.346,
-          "change": -0.156
+          "value": 2.376,
+          "change": -0.19
         },
         "vs_60pts_ago": {
           "date": "2026-08-25",
-          "value": 2.289,
-          "change": -0.099
+          "value": 2.239,
+          "change": -0.053
         }
       },
       "approx": true,
@@ -167,22 +167,22 @@
     "hy_oas_spread": {
       "ok": true,
       "data": {
-        "latest_date": "2026-11-16",
-        "latest": 3.34,
+        "latest_date": "2026-11-17",
+        "latest": 3.43,
         "vs_5pts_ago": {
-          "date": "2026-11-09",
-          "value": 3.34,
-          "change": 0.0
+          "date": "2026-11-10",
+          "value": 3.3,
+          "change": 0.13
         },
         "vs_20pts_ago": {
-          "date": "2026-10-19",
-          "value": 3.29,
-          "change": 0.05
+          "date": "2026-10-20",
+          "value": 3.33,
+          "change": 0.1
         },
         "vs_60pts_ago": {
-          "date": "2026-08-24",
-          "value": 2.69,
-          "change": 0.65
+          "date": "2026-08-25",
+          "value": 2.7,
+          "change": 0.73
         }
       },
       "label": "하이일드 스프레드(OAS, %)"
@@ -190,7 +190,7 @@
   },
   "hy_spread_reference": {
     "note": "문서의 무효화 조건 예시(HY 스프레드 75bp=0.75%p 이상 확대)를 최근 20거래일 변화에 참고로 대입한 값입니다. 베토 트리거 판정(급확대 여부)은 사용자가 직접 내립니다.",
-    "change_20d_pct_points": 0.05,
+    "change_20d_pct_points": 0.1,
     "exceeds_75bp_reference": false
   }
 }
